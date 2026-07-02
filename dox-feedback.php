@@ -12,6 +12,7 @@
  * Domain Path: /languages
  * Requires at least: 6.4
  * Requires PHP: 8.1
+ * Update URI:  https://github.com/davidzoque/dox-feedback
  *
  * Dox Feedback is a fork of "Reviso – Client Feedback & Approvals" (GPL-2.0-or-later).
  * Multi-page / whole-site reviews and email-invited reviewers with roles are
@@ -40,3 +41,25 @@ register_activation_hook(__FILE__,   ['DXF_Plugin', 'activate']);
 register_deactivation_hook(__FILE__, ['DXF_Plugin', 'deactivate']);
 
 add_action('plugins_loaded', ['DXF_Plugin', 'instance']);
+
+// ─── Auto-actualizaciones desde GitHub (Plugin Update Checker) ────────────────
+// El plugin se actualiza desde las releases del repo de GitHub, no desde
+// WordPress.org. Para repos privados, define el token en wp-config.php:
+//     define( 'DXF_GITHUB_TOKEN', 'github_pat_xxxxxxxx' );
+// (fine-grained PAT con permiso de solo lectura de "Contents" sobre el repo)
+$dxf_puc = DXF_DIR . 'vendor/plugin-update-checker/plugin-update-checker.php';
+if ( file_exists( $dxf_puc ) ) {
+    require_once $dxf_puc;
+
+    $dxf_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+        'https://github.com/davidzoque/dox-feedback/',
+        __FILE__,
+        'dox-feedback'
+    );
+    $dxf_update_checker->setBranch('main');
+    // Usa el ZIP limpio que el workflow de GitHub Actions adjunta a cada release
+    $dxf_update_checker->getVcsApi()->enableReleaseAssets();
+    if ( defined('DXF_GITHUB_TOKEN') && DXF_GITHUB_TOKEN ) {
+        $dxf_update_checker->setAuthentication(DXF_GITHUB_TOKEN);
+    }
+}

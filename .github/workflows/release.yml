@@ -1,0 +1,47 @@
+name: Build release ZIP
+
+# Al pushear un tag v* se crea la release con un ZIP limpio del plugin.
+# Plugin Update Checker (enableReleaseAssets) sirve ese ZIP a los sitios.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar que la versión del plugin coincide con el tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PLUGIN_VERSION=$(grep -oP '^ \* Version:\s+\K[0-9.]+' dox-feedback.php)
+          echo "Tag: $TAG_VERSION — Plugin: $PLUGIN_VERSION"
+          if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
+            echo "::error::La versión del header ($PLUGIN_VERSION) no coincide con el tag ($TAG_VERSION)."
+            exit 1
+          fi
+
+      - name: Construir ZIP limpio
+        run: |
+          mkdir -p build/dox-feedback
+          rsync -a \
+            --exclude='.git*' \
+            --exclude='.github' \
+            --exclude='build' \
+            --exclude='*.zip' \
+            ./ build/dox-feedback/
+          cd build
+          zip -rq dox-feedback.zip dox-feedback
+
+      - name: Crear release y adjuntar ZIP
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/dox-feedback.zip
+          generate_release_notes: true
