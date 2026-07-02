@@ -1,0 +1,12 @@
+/* Dox Feedback menu icon — invert black SVG to white, match WP icon opacity behaviour. */
+#adminmenu #toplevel_page_dox-feedback .wp-menu-image img {
+    filter: brightness(0) invert(1);
+    opacity: 0.6;
+    width: 20px;
+    height: 20px;
+}
+#adminmenu #toplevel_page_dox-feedback:hover .wp-menu-image img,
+#adminmenu #toplevel_page_dox-feedback.current .wp-menu-image img,
+#adminmenu #toplevel_page_dox-feedback.wp-has-current-submenu .wp-menu-image img {
+    opacity: 1;
+}

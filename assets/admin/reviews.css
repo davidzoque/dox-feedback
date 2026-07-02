@@ -1,0 +1,54 @@
+/* Dox Feedback Reviews — admin UI styles. */
+
+.dxf-reviews-wrap { max-width: 960px; }
+
+.dxf-status {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    background: #f0f0f1; color: #50575e;
+}
+.dxf-status-active  { background: #d1fae5; color: #047857; }
+.dxf-status-draft   { background: #fef3c7; color: #92400e; }
+.dxf-status-closed  { background: #e5e7eb; color: #6b7280; }
+.dxf-status-expired { background: #fee2e2; color: #b91c1c; }
+
+/* Create wizard */
+.dxf-review-form .dxf-step { display: none; padding: 24px 0; }
+.dxf-review-form .dxf-step.active { display: block; }
+.dxf-review-form h2 { font-size: 18px; margin-bottom: 16px; }
+
+.dxf-scope-card,
+.dxf-mode-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 16px; margin-bottom: 10px;
+    border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
+    background: #fff; transition: border-color .15s, background .15s;
+    max-width: 600px;
+}
+.dxf-scope-card:hover,
+.dxf-mode-card:hover { border-color: #4A6CF7; }
+.dxf-scope-card input,
+.dxf-mode-card input  { margin-top: 4px; flex-shrink: 0; }
+.dxf-scope-card > div,
+.dxf-mode-card > div  { flex: 1; }
+.dxf-scope-card strong,
+.dxf-mode-card strong { display: block; margin-bottom: 4px; font-size: 14px; }
+.dxf-scope-card .description,
+.dxf-mode-card .description { display: block; color: #666; font-size: 13px; }
+
+.dxf-step-actions { margin-top: 24px; display: flex; gap: 8px; }
+
+.dxf-create-result {
+    padding: 12px 16px; border-radius: 6px;
+    background: #f0f9ff; border: 1px solid #bae6fd;
+    color: #075985;
+}
+.dxf-create-result.error {
+    background: #fef2f2; border-color: #fecaca; color: #991b1b;
+}
+
+/* Edit / manage */
+.dxf-review-meta .dxf-status { vertical-align: middle; }
+.dxf-share-url { font-family: monospace; font-size: 12px; }
+.dxf-invite-form input[type="email"] { width: 280px; }
+.dxf-invite-form select { margin-left: 8px; }

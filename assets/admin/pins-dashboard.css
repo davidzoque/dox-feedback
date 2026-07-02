@@ -1,0 +1,173 @@
+/* Dox Feedback — Feedback dashboard (Tier-A, builder-agnostic pin inbox) */
+
+.dxf-pins-wrap .dxf-pins-intro {
+  max-width: 720px;
+  margin: 10px 0 14px;
+}
+
+.dxf-pins-filters {
+  margin: 0 0 14px;
+}
+.dxf-pins-postfilter {
+  clear: both; /* drop below the floated .subsubsub filter bar */
+  margin: 0 0 14px;
+  color: #646970;
+}
+
+.dxf-pins-empty {
+  clear: both; /* the WP .subsubsub filters float left — don't wrap beside them */
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 8px;
+  padding: 40px 24px;
+  text-align: center;
+  color: #646970;
+  max-width: 720px;
+}
+
+/* --- card list --- */
+.dxf-pins-list {
+  clear: both; /* the WP .subsubsub filters float left — don't wrap beside them */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 980px;
+}
+
+.dxf-pin-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-left: 4px solid #ff8d27; /* open accent */
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+}
+.dxf-pin-card.status-resolved {
+  border-left-color: #2e7d32;
+  opacity: .72;
+}
+.dxf-pin-card.status-in_progress {
+  border-left-color: #b8860b;
+}
+
+.dxf-pin-shot {
+  position: relative; /* anchor the absolutely-filled thumbnail below */
+  flex: 0 0 auto;
+  width: 96px;
+  height: 72px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f0f0f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Fill via absolute positioning: a percentage height on a flex item
+   doesn't resolve reliably, which left thumbnails letterboxed in a grey
+   box instead of cropping to fill. Absolute inset:0 sidesteps that. */
+.dxf-pin-shot img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dxf-pin-noshot {
+  font-size: 26px;
+  opacity: .5;
+}
+
+.dxf-pin-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dxf-pin-meta {
+  font-size: 13px;
+  color: #50575e;
+  margin-bottom: 4px;
+}
+.dxf-pin-author { font-weight: 600; color: #1d2327; }
+.dxf-pin-page { text-decoration: none; }
+.dxf-pin-when { color: #8c8f94; }
+
+.dxf-pin-body {
+  color: #1d2327;
+  line-height: 1.5;
+  margin: 4px 0 8px;
+  word-break: break-word;
+}
+
+.dxf-pin-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.dxf-pin-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+}
+.dxf-pin-badge.builder-elementor { background: #fce7f3; color: #9d174d; }
+.dxf-pin-badge.builder-gutenberg { background: #e0f2fe; color: #075985; }
+.dxf-pin-badge.builder-generic   { background: #f3f4f6; color: #374151; }
+.dxf-pin-target {
+  font-size: 12px;
+  color: #646970;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dxf-pin-replies {
+  font-size: 12px;
+  color: #646970;
+}
+
+.dxf-pin-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 110px;
+}
+.dxf-pin-status-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #8c8f94;
+}
+.status-open .dxf-pin-status-label        { color: #c25e00; }
+.status-in_progress .dxf-pin-status-label { color: #b8860b; }
+.status-resolved .dxf-pin-status-label    { color: #2e7d32; }
+
+.dxf-pin-toggle.is-busy { opacity: .6; cursor: default; }
+
+.dxf-pins-pages .dxf-pins-page {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 0 1px;
+}
+.dxf-pins-pages .dxf-pins-page.current {
+  font-weight: 700;
+  background: #ff8d27;
+  color: #fff;
+  border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+  .dxf-pin-card { flex-wrap: wrap; }
+  .dxf-pin-actions { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
+}

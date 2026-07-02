@@ -1,0 +1,3037 @@
+/* Dox Feedback for Bricks — Builder overlay styles
+   -------------------------------------------------------------------------
+   Colours pull from the Bricks variable scale we derive in the whitelabel
+   module (--builder-gray-*, --builder-color-accent) with dark fallbacks.
+
+   IMPORTANT — stacking / z-index strategy
+   ----------------------------------------
+   We deliberately avoid `transform` on #dxf-sidebar because any
+   transform creates a new CSS stacking context. A transformed element at
+   z-index:9000 will paint ABOVE un-transformed toolbar tooltips even when
+   the toolbar has a much higher numeric z-index, because stacking contexts
+   are compared as a whole. Instead we animate the `right` property so the
+   sidebar stays in the normal stacking flow and Bricks toolbar tooltips
+   (which live in the toolbar's own higher stacking context) always appear
+   on top of the sidebar.
+   ------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+   Design tokens
+   ------------------------------------------------------------------------- */
+:root {
+  --rv-panel-bg:    var(--builder-gray-2, #161a1d);
+  --rv-surface:     var(--builder-gray-3, #1e252e);
+  --rv-surface-hi:  var(--builder-gray-4, #263040);
+  --rv-border:      rgba(255, 255, 255, .08);
+  --rv-border-hi:   rgba(255, 255, 255, .15);
+  --rv-text:        var(--builder-gray-d, #dde1e5);
+  --rv-text-muted:  var(--builder-gray-9, #6e7f91);
+  --rv-accent:      var(--builder-color-accent, #ff8d27);
+  --rv-accent-text: var(--builder-color-accent-inverse, #ffffff);
+  --rv-hover:       rgba(255, 255, 255, .07);
+  --rv-danger:      #e05252;
+  --rv-success:     #3fbf6e;
+  --rv-shadow:      -4px 0 24px rgba(0, 0, 0, .45), -1px 0 6px rgba(0, 0, 0, .2);
+  --rv-radius:      6px;
+  --rv-sidebar-w:   320px;
+  /* z-index: confirmed from Bricks staging CSS —
+     #bricks-toolbar is z-index: 3002.
+     Sidebar at 3000 sits above Bricks panels but below the toolbar
+     so toolbar tooltips always paint on top.
+     Comment form at 3500 clears the toolbar (needed when a click
+     lands near the top of the canvas). */
+  --rv-z-sidebar:   3000;
+  --rv-z-form:      3500;
+}
+
+/* -------------------------------------------------------------------------
+   Defensive normalisation — the overlay renders in the PAGE DOM, so generic
+   site CSS (button {…}, input {…}) leaks in. Reset the high-leak properties
+   on our controls; component rules re-apply what they need.
+   ------------------------------------------------------------------------- */
+#dxf-sidebar button,
+#dxf-comment-form button,
+#dxf-fab-tip button {
+  text-transform: none;
+  letter-spacing: normal;
+  text-shadow: none;
+  box-shadow: none;
+  min-height: 0;
+  min-width: 0;
+  text-decoration: none;
+}
+#dxf-sidebar input,
+#dxf-sidebar textarea,
+#dxf-comment-form input,
+#dxf-comment-form textarea {
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: none;
+  min-height: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Toolbar items — native Bricks <li> feel
+   No resting background. No ::before pseudo-element (conflicts with
+   data-balloon's own ::before tooltip arrow on the same element).
+   ------------------------------------------------------------------------- */
+#dxf-tb-sidebar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 10px;
+  cursor: pointer;
+  color: var(--rv-text-muted);
+  transition: color .15s;
+  user-select: none;
+}
+
+#dxf-tb-sidebar:hover { color: var(--rv-text); }
+#dxf-tb-sidebar.dxf-tb-active { color: var(--rv-accent); }
+
+/* Match the native Bricks toolbar icon size (17×17). */
+#dxf-tb-sidebar svg { width: 17px; height: 17px; }
+
+/* Keep our button visible AND clickable when Bricks enters preview mode.
+   Bricks hides every toolbar <li> except .preview / .new-tab (visibility +
+   pointer-events), so we re-enable both, lift it above the toolbar so clicks
+   land, and give it the same filled look as the native preview-mode actions. */
+#bricks-toolbar.is-previewing li#dxf-tb-sidebar {
+  visibility: visible !important;
+  pointer-events: all !important;
+  z-index: 3003;                 /* above the toolbar (3002) */
+  /* Match the native "View on frontend" (.new-tab) button exactly. */
+  background-color: var(--builder-bg-2, #1e252e);
+  border-radius: var(--builder-border-radius, 4px);
+  color: var(--rv-text);
+  margin-inline-start: 4px;
+}
+#bricks-toolbar.is-previewing li#dxf-tb-sidebar:hover {
+  /* Keep a solid fill on hover (don't wash it out). */
+  background-color: var(--builder-bg-3, #263040);
+  color: var(--rv-text);
+}
+#bricks-toolbar.is-previewing li#dxf-tb-sidebar.dxf-tb-active {
+  /* Prefer --rv-accent-text (set by ensureAccentContrast() in builder.js) over
+     Bricks' own inverse token — the latter is always white and breaks against
+     light primaries like the default yellow. */
+  background-color: var(--rv-accent);
+  color: var(--rv-accent-text);
+}
+
+/* Open-comment count bubble on the toolbar icon.
+   Positioned relative to #dxf-tb-sidebar (position:relative) so it
+   sits in the top-right corner regardless of icon size. */
+.dxf-open-badge {
+  position: absolute;
+  top: -3px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+
+
+/* -------------------------------------------------------------------------
+   Scope toggle — "This page" / "All pages"
+   ------------------------------------------------------------------------- */
+.dxf-scope-bar {
+  display: flex;
+  flex-shrink: 0;
+  padding: 8px 10px 4px;
+}
+
+.dxf-scope-btn {
+  flex: 1;
+  padding: 5px 6px;
+  text-align: center;
+  background: none;
+  border: 1px solid var(--rv-border-hi);
+  color: var(--rv-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  font-family: inherit;
+}
+
+.dxf-scope-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.dxf-scope-btn:last-child {
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+}
+
+.dxf-scope-btn:hover {
+  background: var(--rv-hover);
+  color: var(--rv-text);
+}
+
+.dxf-scope-btn.active {
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+  border-color: var(--rv-accent);
+}
+
+/* Comment count badge on each scope tab */
+.dxf-scope-count:not(:empty) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--rv-surface-hi);
+  color: var(--rv-text);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.dxf-scope-btn.active .dxf-scope-count:not(:empty) {
+  background: rgba(255,255,255,.25);
+  color: var(--rv-accent-text);
+}
+
+/* Page label shown on each comment card in all-pages view */
+.dxf-page-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--rv-text-muted);
+  background: var(--rv-surface-hi);
+  border: 1px solid var(--rv-border);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-bottom: 5px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* Clickable variant — navigates to that page's builder */
+a.dxf-page-tag--nav {
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+a.dxf-page-tag--nav:hover {
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+  border-color: var(--rv-accent);
+}
+
+/* -------------------------------------------------------------------------
+   Sidebar — floating draggable panel.
+   Position (left/top) is set by JS from localStorage or a sensible default.
+   We use opacity for show/hide rather than transform so that, at z-index 3000,
+   the sidebar's stacking context still sits below the Bricks toolbar (3002)
+   and toolbar tooltips always paint above us.
+   ------------------------------------------------------------------------- */
+#dxf-sidebar {
+  position: fixed;
+  /* left/top set by JS — do not set right/bottom here */
+  width: var(--rv-sidebar-w);
+  max-height: calc(100vh - 80px);
+  background: var(--rv-panel-bg);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 10px;
+  z-index: var(--rv-z-sidebar);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .55), 0 2px 12px rgba(0, 0, 0, .3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+  font-size: inherit;
+  overflow: hidden;
+}
+
+#dxf-sidebar.dxf-sidebar--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Header — drag handle + title/close */
+.dxf-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  height: 44px;
+  background: var(--rv-surface);
+  border-bottom: 1px solid var(--rv-border);
+  border-radius: 10px 10px 0 0;
+  flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.dxf-sidebar-header:active { cursor: grabbing; }
+/* Buttons inside the header keep a normal pointer cursor */
+.dxf-sidebar-header button { cursor: pointer; }
+
+.dxf-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;       /* Bricks panel heading size */
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--rv-text);
+}
+
+.dxf-sidebar-title svg { flex-shrink: 0; width: 16px; height: 16px; }
+
+.dxf-sidebar-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0;
+  transition: background .12s, color .12s;
+}
+
+.dxf-sidebar-close:hover {
+  background: var(--rv-hover);
+  color: var(--rv-text);
+}
+
+.dxf-sidebar-close svg { width: 16px; height: 16px; }
+
+/* Filter tabs */
+/* Viewport size switcher — preview responsive layouts without leaving comment mode */
+.dxf-viewport-bar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rv-border);
+  flex-shrink: 0;
+}
+.dxf-vp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--rv-border-hi);
+  background: transparent;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  transition: all .12s;
+}
+.dxf-vp-btn svg { width: 15px; height: 15px; }
+.dxf-vp-btn:hover  { border-color: var(--rv-accent); color: var(--rv-accent); }
+.dxf-vp-btn.active { background: var(--rv-accent); border-color: var(--rv-accent); color: var(--rv-accent-text); }
+
+/* Comment list */
+.dxf-comment-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rv-surface-hi) transparent;
+  /* Anchor for cards that pin themselves (position:absolute) while animating
+     out, so survivors can FLIP-slide into the freed space. */
+  position: relative;
+}
+
+/* ── Graceful card animation (enter / exit / move) — 1.0.8 ────────────────── */
+/* New cards fade + settle in; removed cards fade out while the reconciler
+   slides survivors (via inline transforms). Resolve/reopen transitions are
+   handled by the card's own opacity/border transitions below. */
+/* No fill-mode: the card's resting state is fully visible, so a card whose
+   animation is throttled (background tab) or delayed can never get stranded
+   invisible — worst case is a one-frame flash-in. */
+.dxf-card-enter {
+  animation: dxf-card-in .3s ease;
+}
+@keyframes dxf-card-in {
+  from { opacity: 0; transform: translateY(-6px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+.dxf-card-exit {
+  opacity: 0;
+  transform: scale(.97);
+  overflow: hidden;
+  transition: opacity .26s ease, transform .26s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dxf-card-enter { animation: none !important; }
+  .dxf-card-exit  { transition: none !important; }
+}
+
+.dxf-comment-list::-webkit-scrollbar       { width: 4px; }
+.dxf-comment-list::-webkit-scrollbar-thumb { background: var(--rv-surface-hi); border-radius: 2px; }
+
+.dxf-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--rv-text-muted);
+  font-size: 13px;
+}
+
+
+/* -------------------------------------------------------------------------
+   Comment card
+   ------------------------------------------------------------------------- */
+.dxf-comment {
+  padding: 12px 14px 12px 13px;
+  border-bottom: 1px solid var(--rv-border);
+  border-left: 3px solid var(--rv-user, transparent);
+  transition: background .1s, opacity .25s ease;
+}
+
+.dxf-comment:hover        { background: var(--rv-hover); }
+.dxf-comment.is-resolved  { opacity: .5; }
+
+/* BugSmash-style top row: avatar (left) · name/time · number bubble (right) */
+.dxf-comment-header,
+.dxf-comment-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+/* Avatar — uses Bricks accent as background */
+.dxf-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.dxf-avatar--sm {
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+}
+
+.dxf-comment-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.25;
+}
+
+.dxf-comment-meta strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--rv-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dxf-time { font-size: 11px; line-height: 1.25; color: var(--rv-text-muted); }
+
+.dxf-comment-body {
+  font-size: 15px;
+  color: var(--rv-text);
+  opacity: 1;
+  margin: 0 0 10px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* Pin number badge — circular bubble pinned to the right of the top row,
+   mirroring the numbered marker on the canvas. */
+.dxf-pin-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.is-resolved .dxf-pin-num { background: var(--rv-success); }
+
+/* Orphaned-comment badge — shown when the anchored element no longer exists */
+.dxf-orphaned-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #d97706;
+  background: rgba(217, 119, 6, .12);
+  border: 1px solid rgba(217, 119, 6, .25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+/* Screenshot thumbnail inside a comment card — small by design, click to zoom */
+.dxf-shot {
+  display: inline-block;
+  vertical-align: top;
+  margin: 2px 6px 10px 0;
+  width: 96px;
+  height: 64px;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: var(--rv-radius);
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: border-color .12s, transform .12s;
+}
+
+.dxf-shot:hover { border-color: var(--rv-accent); transform: scale(1.03); }
+
+.dxf-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* Focus flash when a pin selects its comment */
+.dxf-comment.dxf-flash {
+  animation: dxf-flash-kf 1.4s ease-out;
+}
+
+@keyframes dxf-flash-kf {
+  0%, 30% { background: rgba(255, 141, 39, .22); }
+  100%    { background: transparent; }
+}
+
+/* Screenshot lightbox */
+#dxf-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 3600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+  background: rgba(0, 0, 0, .8);
+  cursor: zoom-out;
+}
+
+#dxf-lightbox.hidden { display: none; }
+
+.dxf-lightbox-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+#dxf-lightbox img {
+  max-width: 100%;
+  max-height: calc(92vh - 50px);
+  border-radius: var(--rv-radius);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+}
+
+.dxf-lightbox-bar {
+  display: flex;
+  justify-content: center;
+  cursor: default;
+}
+
+.dxf-lb-media:disabled { opacity: 1; cursor: default; }
+
+/* -------------------------------------------------------------------------
+   Resolve / reopen button — icon-only, same size as Bricks icon buttons
+   ------------------------------------------------------------------------- */
+.dxf-resolve-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all .12s;
+}
+
+.dxf-resolve-btn svg { width: 14px; height: 14px; }
+
+.dxf-resolve-btn:hover {
+  background: var(--rv-success);
+  border-color: var(--rv-success);
+  color: #fff;
+}
+
+.is-resolved .dxf-resolve-btn:hover {
+  background: var(--rv-hover);
+  border-color: var(--rv-border-hi);
+  color: var(--rv-text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   Reply thread
+   ------------------------------------------------------------------------- */
+.dxf-reply-btn {
+  background: none;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 2px 0;
+  margin-top: 2px;
+  transition: color .12s;
+}
+
+.dxf-reply-btn:hover { color: var(--rv-accent); }
+
+.dxf-locate-btn {
+  background: none;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  text-decoration: none;
+  padding: 2px 8px 2px 0;
+  margin-top: 2px;
+  transition: color .12s;
+}
+.dxf-locate-btn:hover { color: var(--rv-accent); }
+
+/* Whole-card click → locate + open thread */
+.dxf-comment--clickable { cursor: pointer; }
+
+/* Card footer — row of actions (Reply · Resolve · Delete) */
+.dxf-comment-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+/* Reply / view-thread button */
+.dxf-reply-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 3px 9px;
+  transition: all .12s;
+}
+.dxf-reply-open svg { width: 13px; height: 13px; }
+
+/* Explicit Resolve/Reopen text button (footer, next to Reply) — replaced the
+   hover-revealed circle icon, which was too hidden to discover. */
+.dxf-resolve-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  padding: 3px 8px;
+  transition: all .12s;
+}
+.dxf-resolve-text svg { width: 13px; height: 13px; }
+.dxf-resolve-text.is-resolved {
+  color: var(--rv-success);
+  border-color: var(--rv-success);
+}
+.dxf-resolve-text:hover {
+  background: var(--rv-teal-bg, rgba(63,191,110,.12));
+  border-color: var(--rv-success);
+  color: var(--rv-success);
+}
+.dxf-resolve-text.is-resolved:hover {
+  background: var(--rv-hover);
+  border-color: var(--rv-border-hi);
+  color: var(--rv-text);
+}
+.dxf-reply-open:hover { border-color: var(--rv-accent); color: var(--rv-accent); }
+
+/* Delete button (mirrors the resolve button, danger on hover) */
+.dxf-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all .12s;
+}
+.dxf-delete-btn svg { width: 14px; height: 14px; }
+.dxf-delete-btn:hover {
+  background: var(--rv-danger);
+  border-color: var(--rv-danger);
+  color: #fff;
+}
+/* Two-click confirm — "click again to delete" */
+.dxf-delete-btn.is-armed {
+  background: var(--rv-danger);
+  border-color: var(--rv-danger);
+  color: #fff;
+  animation: dxf-arm-pulse 1s ease-in-out infinite;
+}
+@keyframes dxf-arm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--rv-danger); }
+  50%      { box-shadow: 0 0 0 4px rgba(224, 82, 82, .25); }
+}
+
+/* "N replies" indicator (card click opens the thread) */
+.dxf-thread-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--rv-text-muted);
+  font-size: 12px;
+  margin: 2px 0 4px;
+}
+.dxf-thread-count svg { width: 14px; height: 14px; }
+
+/* Thread detail view */
+.dxf-thread { padding: 4px 0; }
+.dxf-thread-back {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rv-border);
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 8px 14px;
+  transition: color .12s;
+}
+.dxf-thread-back:hover { color: var(--rv-accent); }
+.dxf-thread .dxf-comment { border-bottom: none; }
+.dxf-thread-reply { padding: 0 14px 14px; }
+/* The reply form is appended as a sibling of .dxf-thread-reply — give it
+   matching side spacing so it doesn't run edge-to-edge inside the modal. */
+.dxf-thread .dxf-inline-reply { margin: 0 14px 14px; }
+
+.dxf-replies {
+  margin: 8px 0 6px 14px;
+  border-left: 2px solid var(--rv-border-hi);
+  padding-left: 10px;
+}
+
+.dxf-reply {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dxf-reply strong { display: block; color: var(--rv-text); font-size: 12px; margin-bottom: 1px; }
+.dxf-reply .dxf-time { display: block; margin-bottom: 2px; }
+.dxf-reply p { color: var(--rv-text); opacity: .8; margin: 0; font-size: 13px; line-height: 1.5; word-break: break-word; }
+
+.dxf-inline-reply { margin-top: 8px; }
+
+.dxf-inline-reply textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: var(--rv-radius);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--rv-text);
+  resize: vertical;
+  outline: none;
+  transition: border-color .15s;
+}
+
+.dxf-inline-reply textarea::placeholder { color: var(--rv-text-muted); }
+
+.dxf-inline-reply textarea:focus {
+  border-color: var(--rv-accent);
+  box-shadow: 0 0 0 2px var(--rv-accent-bg, rgba(255, 141, 39, .18));
+}
+
+.dxf-inline-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* -------------------------------------------------------------------------
+   Shared buttons
+   ------------------------------------------------------------------------- */
+.dxf-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--rv-radius);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .12s;
+  line-height: 1.4;
+}
+
+.dxf-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.dxf-btn-primary                { background: var(--rv-accent); color: var(--rv-accent-text); border-color: var(--rv-accent); }
+.dxf-btn-primary:hover          { filter: brightness(1.12); }
+.dxf-btn-primary:disabled       { opacity: .5; cursor: not-allowed; }
+.dxf-btn-ghost                  { background: transparent; color: var(--rv-text-muted); border-color: var(--rv-border-hi); }
+.dxf-btn-ghost:hover            { background: var(--rv-hover); color: var(--rv-text); }
+
+/* -------------------------------------------------------------------------
+   Comment form popover — z-index 200 so it clears toolbar + tooltips
+   ------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   Bricks Builder — layout switch between editor mode and Preview Mode
+
+   The Bricks comment toolbar button and the Bricks Preview button are
+   independent now: toggling comments doesn't enter Preview, and entering
+   Preview doesn't open / close the sidebar. The two states compose:
+
+     - Editor + sidebar open  → docked to left side (Structure-tab slot).
+                                Pin layer / FAB / floating comment form
+                                are all suppressed (clicks would hit
+                                Bricks UI, not the canvas).
+     - Preview + sidebar open → floating draggable modal + active pin
+                                layer + canvas-click placement.
+     - Sidebar closed         → nothing rendered either way.
+
+   The `.dxf-bricks-preview` class is toggled on <body> by builder.js
+   observing `#bricks-toolbar.is-previewing`. The docked-layout overrides
+   live just below the hide rules.
+--------------------------------------------------------------------------- */
+/* Overlay UI that only makes sense over a rendered preview — the FAB,
+   floating comment form, pin layer, and popovers — is hidden in editor
+   mode. The sidebar is the exception: it stays available in both modes
+   so the reviewer can read / triage comments while editing. In editor
+   mode it docks to the left side (see the docked-layout rules below);
+   in preview it floats and is draggable. */
+/* The Gutenberg block editor IS body.wp-admin but legitimately runs the full
+   floating overlay (FAB + pins + form), so it's excluded via the host's
+   body.dxf-gutenberg-editor marker. */
+body.wp-admin:not(.dxf-bricks-preview):not(.dxf-gutenberg-editor) #dxf-comment-form,
+body.wp-admin:not(.dxf-bricks-preview):not(.dxf-gutenberg-editor) #dxf-fab,
+body.wp-admin:not(.dxf-bricks-preview):not(.dxf-gutenberg-editor) #dxf-pin-layer,
+body.wp-admin:not(.dxf-bricks-preview):not(.dxf-gutenberg-editor) #dxf-pending-pin,
+body.wp-admin:not(.dxf-bricks-preview):not(.dxf-gutenberg-editor) .dxf-popover {
+  display: none !important;
+}
+/* Bricks builder doesn't add wp-admin to body — instead the URL is
+   ?bricks=run. builder.js stamps `dxf-in-editor` on body once it sees
+   Bricks's own root element (#bricks-app). A JS-managed class instead of
+   `body:has(#bricks-app)` — the :has() form silently failed to match on
+   some Bricks/browser combinations, leaving the panel floating. */
+/* NB: .dxf-popover must NOT be in this list — the status/assign/device
+   pills open popovers that are PANEL UI, not canvas overlay; hiding them
+   here made the card dropdowns silently dead in the docked editor. */
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-comment-form,
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-fab,
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-pin-layer,
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-pending-pin {
+  display: none !important;
+}
+
+/* Docked sidebar layout — when in the Bricks builder AND NOT in Preview
+   Mode, the sidebar sits as a fixed left-edge panel where the Structure
+   tab usually lives, rather than as a floating draggable modal. Size +
+   vertical offset are driven by CSS vars (set by builder.js from the
+   resize handles, persisted to localStorage) so the panel can be made
+   shorter and stacked above/below the Structure panel rather than always
+   covering the full edge. Defaults reproduce the original full-height dock.
+   Toggling Preview Mode swaps this for the floating modal layout, and the
+   header dock-toggle lets the user opt out per-browser (.dxf-float). */
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-sidebar.dxf-sidebar--open:not(.dxf-float) {
+  position: fixed !important;
+  left: var(--rv-dock-left, 0px) !important;
+  top: var(--rv-dock-top, 33px) !important;
+  width: var(--rv-dock-w, 340px) !important;
+  height: var(--rv-dock-h, calc(100vh - var(--rv-dock-top, 33px))) !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: 2px 0 24px rgba(0, 0, 0, .35);
+}
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-sidebar.dxf-sidebar--open:not(.dxf-float) .dxf-sidebar-header {
+  cursor: default !important;
+}
+
+/* Docked (in-editor) panel: compact the header chrome so the comment LIST
+   keeps the vertical space — the floating modal's roomy spacing left a short
+   dock with a tiny scroll area. Scoped strictly to the docked editor state. */
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-sidebar.dxf-sidebar--open:not(.dxf-float) .dxf-sidebar-header { padding: 7px 12px; }
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-sidebar.dxf-sidebar--open:not(.dxf-float) .dxf-scope-btn { padding: 7px 0; font-size: 12px; }
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-sidebar.dxf-sidebar--open:not(.dxf-float) .dxf-tools-row { padding: 7px 12px 7px; }
+
+/* Resize handles for the docked panel. Hidden by default; builder.js adds
+   .dxf-dock-resizable when the panel is docked (editor, not preview).
+   The right handle drags width; the bottom handle drags height. */
+#dxf-sidebar .dxf-dock-resize { display: none; }
+body.dxf-in-editor:not(.dxf-bricks-preview) #dxf-sidebar.dxf-sidebar--open.dxf-dock-resizable:not(.dxf-float) .dxf-dock-resize {
+  display: block;
+  position: absolute;
+  z-index: 5;
+}
+#dxf-sidebar .dxf-dock-resize-x {
+  top: 0; right: -3px; width: 7px; height: 100%;
+  cursor: ew-resize;
+}
+/* Right-aligned column (Structure on the right): the resizable edge faces the
+   canvas, i.e. the panel's LEFT edge. */
+#dxf-sidebar.dxf-dock-x-inner-left .dxf-dock-resize-x {
+  right: auto; left: -3px;
+}
+#dxf-sidebar .dxf-dock-resize-y {
+  left: 0; bottom: -3px; width: 100%; height: 7px;
+  cursor: ns-resize;
+}
+/* Stacked with Structure: the column width is Bricks-owned (use Bricks' own
+   panel resizer) — hide our width handle; the height divider remains. */
+body.dxf-in-editor #dxf-sidebar.dxf-dock-stacked .dxf-dock-resize-x { display: none !important; }
+#dxf-sidebar .dxf-dock-resize:hover { background: var(--rv-accent, #ff8d27); opacity: .35; }
+#dxf-sidebar.dxf-dock-dragging { user-select: none; }
+
+#dxf-comment-form {
+  position: fixed;
+  width: 300px;
+  /* Hard cap so the textarea's vertical resize can't grow the form
+     beyond the viewport. Without this, the resize handle pushed the
+     form taller than the screen and the action buttons at the bottom
+     fell out of reach — felt like "the draggable modal broke" because
+     once it was off-screen the only way back was to dismiss. */
+  max-height: calc(100vh - 32px);
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: var(--rv-radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .28);
+  z-index: var(--rv-z-form);
+  /* Allow vertical resize — overflow must not be hidden so the resize
+     handle remains visible at the bottom of the form. */
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+#dxf-comment-form.hidden { display: none; }
+
+.dxf-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius) var(--rv-radius) 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--rv-text-muted);
+  background: var(--rv-panel-bg);
+  /* Grab cursor signals drag affordance — wired up by setupFormDrag(). */
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+.dxf-form-header.is-dragging { cursor: grabbing; }
+.dxf-form-header button { cursor: pointer; }
+
+.dxf-form-close {
+  background: none;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color .12s;
+}
+
+.dxf-form-close:hover { color: var(--rv-text); }
+
+.dxf-form-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid var(--rv-border);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 68px;   /* ~3 rows */
+  max-height: 400px;
+  outline: none;
+  color: var(--rv-text);
+  background: var(--rv-surface);
+  border-radius: 0;
+  /* Style the resize handle to match the dark theme */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rv-surface-hi) transparent;
+}
+
+.dxf-form-textarea::placeholder { color: var(--rv-text-muted); }
+.dxf-form-textarea:focus        { background: var(--rv-surface-hi); }
+
+.dxf-form-error {
+  min-height: 16px;
+  font-size: 12px;
+  color: var(--rv-danger);
+  padding: 4px 12px 0;
+  margin: 0;
+}
+
+/* Screenshot capture status inside the comment form */
+.dxf-form-shot {
+  font-size: 11px;
+  padding: 2px 12px 0;
+  margin: 0;
+  color: var(--rv-text-muted);
+}
+.dxf-form-shot--ok   { color: var(--rv-success); }
+.dxf-form-shot--fail { color: var(--rv-text-muted); opacity: .8; }
+
+.dxf-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  background: var(--rv-panel-bg);
+  border-radius: 0 0 var(--rv-radius) var(--rv-radius);
+}
+
+/* -------------------------------------------------------------------------
+   Attachments — comment form picker + rendered attachments on cards
+   ------------------------------------------------------------------------- */
+.dxf-form-attach {
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dxf-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: var(--rv-radius);
+  color: var(--rv-text-muted);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .12s;
+  align-self: flex-start;
+}
+
+.dxf-attach-btn:hover { border-color: var(--rv-accent); color: var(--rv-accent); }
+.dxf-attach-btn svg   { width: 13px; height: 13px; }
+
+/* File list — wrapping row of pills */
+.dxf-file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 0;
+}
+
+/* Individual file pill with × button */
+.dxf-file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 200px;
+  padding: 2px 4px 2px 8px;
+  background: var(--rv-surface-hi);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--rv-text);
+  line-height: 1.4;
+}
+
+.dxf-file-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.dxf-file-remove {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 50%;
+  transition: background .1s, color .1s;
+}
+
+.dxf-file-remove:hover {
+  background: var(--rv-danger);
+  color: #fff;
+}
+
+.dxf-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+
+/* Image attachments share the screenshot thumbnail look but tile in a grid */
+.dxf-attach-img {
+  width: calc(50% - 4px);
+  margin: 0;
+}
+
+.dxf-attach-img img { max-height: 96px; }
+
+/* Non-image file chip */
+.dxf-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: var(--rv-radius);
+}
+
+.dxf-file-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  color: var(--rv-text);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.dxf-file-link svg  { width: 15px; height: 15px; flex-shrink: 0; color: var(--rv-text-muted); }
+.dxf-file-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dxf-file-link:hover { color: var(--rv-accent); }
+
+.dxf-file-media {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  background: transparent;
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  color: var(--rv-text-muted);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .12s;
+}
+
+.dxf-file-media:hover:not(:disabled) { border-color: var(--rv-accent); color: var(--rv-accent); }
+.dxf-file-media:disabled { color: var(--rv-success); border-color: var(--rv-success); cursor: default; }
+
+/* Auto-linkified URLs inside comment/reply bodies */
+.dxf-comment-body a,
+.dxf-reply a { color: var(--rv-accent); text-decoration: underline; word-break: break-all; }
+
+/* -------------------------------------------------------------------------
+   AI: summarize bar, summary modal, triage badge
+   ------------------------------------------------------------------------- */
+#dxf-summary {
+  position: fixed;
+  inset: 0;
+  z-index: 3600;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 4vw;
+}
+.dxf-summary-inner {
+  width: 460px;
+  max-width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--rv-panel-bg);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  padding: 0 0 12px;
+}
+.dxf-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rv-border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rv-text);
+  position: sticky;
+  top: 0;
+  background: var(--rv-surface);
+}
+.dxf-summary-close {
+  background: none; border: none; color: var(--rv-text-muted); cursor: pointer; padding: 2px; border-radius: 4px;
+}
+.dxf-summary-close:hover { color: var(--rv-text); }
+.dxf-summary-close svg { width: 16px; height: 16px; }
+.dxf-summary-overview { padding: 12px 16px; margin: 0; color: var(--rv-text); font-size: 13px; line-height: 1.5; }
+.dxf-summary-themes { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.dxf-theme {
+  border: 1px solid var(--rv-border-hi);
+  border-left: 3px solid var(--rv-text-muted);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.dxf-theme--high   { border-left-color: var(--rv-danger); }
+.dxf-theme--medium { border-left-color: #d97706; }
+.dxf-theme--low    { border-left-color: var(--rv-success); }
+.dxf-theme-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.dxf-theme-head strong { color: var(--rv-text); font-size: 13px; }
+.dxf-theme-meta { color: var(--rv-text-muted); font-size: 11px; text-transform: capitalize; flex-shrink: 0; }
+.dxf-theme p { margin: 4px 0 0; color: var(--rv-text); opacity: .8; font-size: 12px; line-height: 1.45; }
+
+.dxf-triage {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  background: var(--rv-surface-hi);
+  color: var(--rv-text-muted);
+  border: 1px solid var(--rv-border-hi);
+}
+.dxf-triage--high   { color: #fff; background: var(--rv-danger); border-color: var(--rv-danger); }
+.dxf-triage--medium { color: #fff; background: #d97706; border-color: #d97706; }
+.dxf-triage--low    { color: #fff; background: var(--rv-success); border-color: var(--rv-success); }
+
+/* -------------------------------------------------------------------------
+   Review rounds bar
+   ------------------------------------------------------------------------- */
+.dxf-review-bar:empty { display: none; }
+.dxf-review-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rv-border);
+  flex-shrink: 0;
+}
+.dxf-review-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--rv-surface);
+  color: var(--rv-text);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+/* -------------------------------------------------------------------------
+   Pro: status + assignee selects on a comment card
+   ------------------------------------------------------------------------- */
+.dxf-controls {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.dxf-controls select {
+  flex: 1;
+  min-width: 0;
+  background: var(--rv-surface);
+  color: var(--rv-text);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dxf-controls select:focus {
+  outline: none;
+  border-color: var(--rv-accent);
+}
+
+/* -------------------------------------------------------------------------
+   Auto-captured environment context chip
+   ------------------------------------------------------------------------- */
+.dxf-ctx {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--rv-text-muted);
+}
+
+.dxf-ctx > span { white-space: nowrap; }
+
+.dxf-ctx-err {
+  color: #d97706;
+  font-weight: 600;
+  cursor: help;
+}
+
+/* ============================================================================
+   COMMENTS MODAL — design redesign (light + dark theme)
+   ----------------------------------------------------------------------------
+   Tokens follow the design bundle. Default is dark; honours OS preference;
+   explicit override via `[data-rv-theme]` on the documentElement.
+   This block intentionally appears at the end of the file so it overrides
+   earlier defaults via the cascade.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Theme tokens ────────────────────────────────────────────────────────── */
+/* Dark defaults — anchor on Bricks's own --builder-gray-* / --builder-color-*
+   scale so the modal automatically follows the Bricks UI palette + any
+   white-label overrides. Fallbacks make the FE (no --builder-* vars) look
+   right without any host config. */
+:root,
+:root[data-rv-theme="dark"] {
+  --rv-scene:         var(--builder-gray-1, #161a1d);
+  --rv-modal:         var(--builder-gray-2, #1e252e);
+  --rv-surface:       var(--builder-gray-3, #263040);
+  --rv-surface-hi:    var(--builder-gray-4, #2f3a4d);
+  --rv-border:        rgba(255, 255, 255, .08);
+  --rv-border-hi:     rgba(255, 255, 255, .15);
+  --rv-text:          var(--builder-gray-d, #e8eaf5);
+  --rv-text-sub:      var(--builder-gray-b, #aab2bc);
+  --rv-text-muted:    var(--builder-gray-9, #6e7f91);
+  --rv-accent:        var(--builder-color-accent, #ff8d27);
+  --rv-accent-bg:     rgba(255, 141, 39, .18);
+  --rv-accent-text:   var(--builder-color-accent-inverse, #ffffff);
+  --rv-teal:          #3fbf6e;
+  --rv-teal-bg:       rgba(63, 191, 110, .15);
+  --rv-danger:        #e05252;
+  --rv-danger-bg:     rgba(224, 82, 82, .15);
+  --rv-success:       #3fbf6e;
+  --rv-shadow-modal:  0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --rv-shadow-card:   0 1px 4px rgba(0, 0, 0, 0.3);
+  --rv-shadow-card-h: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --rv-shadow-pop:    0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --rv-font-stack:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* OS-prefers light AND no explicit dark override → light */
+@media (prefers-color-scheme: light) {
+  :root:not([data-rv-theme="dark"]) {
+    --rv-scene:         #edeae5;
+    --rv-modal:         #ffffff;
+    --rv-surface:       #f8f6f3;
+    --rv-surface-hi:    #f0ede8;
+    --rv-border:        #e4dfd9;
+    --rv-border-hi:     #bfb8b0;
+    --rv-text:          #1c1917;
+    --rv-text-sub:      #6b6560;
+    --rv-text-muted:    #a09890;
+    --rv-accent:        var(--builder-color-accent, #4f46e5);
+    --rv-accent-bg:     #eeecfd;
+    --rv-teal:          #0d9488;
+    --rv-teal-bg:       #ebfdf8;
+    --rv-danger:        #dc2626;
+    --rv-danger-bg:     rgba(220, 38, 38, 0.08);
+    --rv-success:       #0d9488;
+    --rv-shadow-modal:  0 24px 64px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    --rv-shadow-card:   0 1px 4px rgba(0, 0, 0, 0.04);
+    --rv-shadow-card-h: 0 6px 24px rgba(0, 0, 0, 0.08);
+    --rv-shadow-pop:    0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Explicit light override always wins */
+:root[data-rv-theme="light"] {
+  --rv-scene:         #edeae5;
+  --rv-modal:         #ffffff;
+  --rv-surface:       #f8f6f3;
+  --rv-surface-hi:    #f0ede8;
+  --rv-border:        #e4dfd9;
+  --rv-border-hi:     #bfb8b0;
+  --rv-text:          #1c1917;
+  --rv-text-sub:      #6b6560;
+  --rv-text-muted:    #a09890;
+  --rv-accent:        #4f46e5;
+  --rv-accent-bg:     #eeecfd;
+  --rv-teal:          #0d9488;
+  --rv-teal-bg:       #ebfdf8;
+  --rv-danger:        #dc2626;
+  --rv-danger-bg:     rgba(220, 38, 38, 0.08);
+  --rv-success:       #0d9488;
+  --rv-shadow-modal:  0 24px 64px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --rv-shadow-card:   0 1px 4px rgba(0, 0, 0, 0.04);
+  --rv-shadow-card-h: 0 6px 24px rgba(0, 0, 0, 0.08);
+  --rv-shadow-pop:    0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Bridge tokens to existing rules (older parts of this file still reference these) */
+:root {
+  --rv-panel-bg:    var(--rv-modal);
+  --rv-hover:       var(--rv-surface-hi);
+  --rv-radius:      10px;
+  --rv-radius-lg:   14px;
+  --rv-sidebar-w:   420px;
+}
+
+/* ── Modal shell ─────────────────────────────────────────────────────────── */
+#dxf-sidebar {
+  font-family: var(--rv-font-stack) !important;
+  width: var(--rv-sidebar-w);
+  max-height: 90vh;
+  background: var(--rv-modal);
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius-lg);
+  box-shadow: var(--rv-shadow-modal);
+  color: var(--rv-text);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+
+/* Header */
+/* Enforce border-box on the whole overlay. The host page can't be trusted to
+   set it globally — notably the Gutenberg block editor (wp-admin) doesn't, so
+   without this the fixed-height header + padding double up into an oversized
+   bar. */
+#dxf-sidebar, #dxf-sidebar *,
+#dxf-comment-form, #dxf-comment-form *,
+#dxf-mode-pill, #dxf-mode-pill *,
+#dxf-fab, #dxf-fab *,
+#dxf-popover, #dxf-popover * {
+  box-sizing: border-box;
+}
+#dxf-sidebar .dxf-sidebar-header {
+  /* Height comes from .dxf-sidebar-header (44px); keep horizontal padding
+     only so the two don't stack into a tall header under content-box. */
+  padding: 0 18px;
+  border-bottom: 1px solid var(--rv-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#dxf-sidebar .dxf-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rv-text);
+  flex: 1;
+  min-width: 0;
+}
+#dxf-sidebar .dxf-sidebar-title svg {
+  width: 17px;
+  height: 17px;
+  color: var(--rv-accent);
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-sidebar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#dxf-sidebar .dxf-brand-logo { max-height: 30px; max-width: 180px; }
+
+#dxf-sidebar .dxf-sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#dxf-sidebar .dxf-theme-toggle,
+#dxf-sidebar .dxf-dock-toggle,
+#dxf-sidebar .dxf-dockright-toggle,
+#dxf-sidebar .dxf-sidebar-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: var(--rv-surface);
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s, color .12s;
+  padding: 0;
+}
+#dxf-sidebar .dxf-theme-toggle svg,
+#dxf-sidebar .dxf-dock-toggle svg,
+#dxf-sidebar .dxf-dockright-toggle svg,
+#dxf-sidebar .dxf-sidebar-close svg { width: 14px; height: 14px; }
+#dxf-sidebar .dxf-theme-toggle:hover,
+#dxf-sidebar .dxf-dock-toggle:hover,
+#dxf-sidebar .dxf-dockright-toggle:hover,
+#dxf-sidebar .dxf-sidebar-close:hover {
+  background: var(--rv-surface-hi);
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-dockright-toggle.is-active {
+  background: var(--rv-accent);
+  color: var(--rv-accent-text, #fff);
+}
+
+/* Dock-to-side: the panel snaps to the right edge at its normal width, full
+   height. In the Gutenberg editor it clears the ~61px editor top bar. */
+#dxf-sidebar.dxf-dock-right {
+  position: fixed !important;
+  top: var(--rv-dockright-top, 0) !important;
+  right: 0 !important;
+  left: auto !important;
+  bottom: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border-top: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+}
+#dxf-sidebar.dxf-dock-right .dxf-sidebar-header { cursor: default; }
+body.dxf-gutenberg-editor #dxf-sidebar.dxf-dock-right { top: 61px !important; }
+/* Dock toggle exists only inside the Bricks editor (builder.js injects it);
+   hide it anywhere else builder.js happens to load (preview iframe). */
+body:not(.dxf-in-editor) #dxf-sidebar .dxf-dock-toggle { display: none; }
+#dxf-sidebar .dxf-dock-toggle.is-active { color: var(--rv-accent); }
+
+/* AI summarize as a header icon (replaced the full-width bar — that cost an
+   entire row of vertical space in the docked panel). */
+#dxf-sidebar .dxf-ai-headbtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--rv-accent);
+  background: var(--rv-accent-bg);
+  color: var(--rv-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 13px;
+  transition: background .12s;
+}
+#dxf-sidebar .dxf-ai-headbtn:hover { background: var(--rv-surface-hi); }
+
+#dxf-sidebar .dxf-scope-count:not(:empty) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--rv-surface);
+  color: var(--rv-text-muted);
+  min-width: 18px;
+  transition: background .15s, color .15s;
+}
+
+/* ── Filter row 1: status pills ─────────────────────────────────────────── */
+
+/* ── Tabs (This page / Everything) ───────────────────────────────────────── */
+#dxf-sidebar .dxf-scope-bar {
+  display: flex;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--rv-border);
+  background: transparent;
+  border-radius: 0;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  gap: 2px;
+}
+#dxf-sidebar .dxf-scope-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 11px 0;
+  color: var(--rv-text-sub);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: var(--rv-font-stack);
+  transition: color .15s, border-color .15s;
+}
+#dxf-sidebar .dxf-scope-btn:hover {
+  color: var(--rv-text);
+  background: transparent;
+  border-color: transparent;
+}
+#dxf-sidebar .dxf-scope-btn.active {
+  color: var(--rv-accent);
+  border-bottom-color: var(--rv-accent);
+  background: transparent;
+}
+
+/* ── Tools row: device dropdown · rounds · New round ────────────────────── */
+
+/* "Resolved" toggle — replaces the old Open/Resolved/Mine/All pill row. */
+#dxf-sidebar .dxf-resolved-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  font-family: var(--rv-font-stack);
+  height: 28px;
+  line-height: 1;
+}
+#dxf-sidebar .dxf-resolved-toggle input {
+  /* `all: unset` first: themes routinely restyle bare input[type=checkbox]
+     (appearance, ::before indicators, accent colours) and the overlay lives
+     in the page DOM — wipe everything, then rebuild our switch. */
+  all: unset;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-sizing: border-box;
+  display: inline-block;
+  width: 28px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 99px !important;
+  border: 1px solid var(--rv-border-hi) !important;
+  background: var(--rv-surface-hi) !important;
+  background-image: none !important;
+  position: relative;
+  cursor: pointer;
+  flex: none;
+  transition: background .15s, border-color .15s;
+}
+/* Themes often inject their checkbox tick via ::before — ours uses ::after. */
+#dxf-sidebar .dxf-resolved-toggle input::before { content: none !important; }
+#dxf-sidebar .dxf-resolved-toggle input::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--rv-text-muted);
+  transition: transform .15s, background .15s;
+}
+#dxf-sidebar .dxf-resolved-toggle input:checked {
+  background: var(--rv-accent) !important;
+  border-color: var(--rv-accent) !important;
+}
+#dxf-sidebar .dxf-resolved-toggle input:checked::after {
+  transform: translateX(12px);
+  background: #fff;
+}
+#dxf-sidebar .dxf-resolved-toggle:hover { color: var(--rv-text); }
+
+#dxf-sidebar .dxf-tools-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px 11px;
+  border-bottom: 1px solid var(--rv-border);
+  background: transparent;
+}
+#dxf-sidebar .dxf-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  color: var(--rv-text-sub);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: all .12s;
+  font-family: var(--rv-font-stack);
+}
+#dxf-sidebar .dxf-dropdown:hover {
+  border-color: var(--rv-border-hi);
+  background: var(--rv-surface-hi);
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-dropdown-icon { display: inline-flex; }
+#dxf-sidebar .dxf-dropdown-icon svg { width: 13px; height: 13px; }
+#dxf-sidebar .dxf-dropdown > span { display: inline-flex; align-items: center; }
+#dxf-sidebar .dxf-dropdown-chev svg { width: 11px; height: 11px; }
+#dxf-sidebar [data-rv-select] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+}
+#dxf-sidebar .dxf-review-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+#dxf-sidebar .dxf-review-bar:empty { display: none; }
+#dxf-sidebar .dxf-review-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 5px 22px 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238b8fb8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 7px center;
+  color: var(--rv-text-sub);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--rv-font-stack);
+  cursor: pointer;
+}#dxf-sidebar .dxf-tools-row .dxf-device-drop { display: inline-flex; }
+
+/* AI bar */
+/* ── Comment list ─────────────────────────────────────────────────────── */
+#dxf-sidebar .dxf-sidebar-body,
+#dxf-sidebar .dxf-comment-list {
+  padding: 14px 18px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: transparent;
+}
+#dxf-sidebar .dxf-sidebar-body { padding: 0; }
+#dxf-sidebar .dxf-sidebar-body > .dxf-comment-list { padding: 14px 18px; }
+#dxf-sidebar .dxf-comment-list::-webkit-scrollbar { width: 5px; }
+#dxf-sidebar .dxf-comment-list::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.25); border-radius: 99px; }
+#dxf-sidebar .dxf-empty {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--rv-text-muted);
+  font-size: 13px;
+}
+
+/* ── Comment card ─────────────────────────────────────────────────────── */
+#dxf-sidebar .dxf-comment {
+  background: var(--rv-modal);
+  border: 1px solid var(--rv-border);
+  border-left: 3px solid var(--rv-teal);
+  border-radius: var(--rv-radius);
+  box-shadow: var(--rv-shadow-card);
+  padding: 0;
+  overflow: visible;
+  cursor: default;
+  transition: box-shadow .2s, border-left-color .25s ease, opacity .25s ease;
+}
+#dxf-sidebar .dxf-comment:hover { box-shadow: var(--rv-shadow-card-h); background: var(--rv-modal); }
+#dxf-sidebar .dxf-comment.is-resolved { border-left-color: var(--rv-border-hi); opacity: 1; }
+#dxf-sidebar .dxf-comment.is-resolved .dxf-comment-body { opacity: 0.7; }
+#dxf-sidebar .dxf-comment .dxf-comment-body { transition: opacity .25s ease; }
+#dxf-sidebar .dxf-comment.is-in-progress { border-left-color: #f59e0b; }
+#dxf-sidebar .dxf-comment--clickable { cursor: pointer; }
+
+/* Card header */
+#dxf-sidebar .dxf-comment-head {
+  padding: 13px 14px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+#dxf-sidebar .dxf-avatar {
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  letter-spacing: -0.02em;
+}
+#dxf-sidebar .dxf-comment-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.25;
+}
+#dxf-sidebar .dxf-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rv-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#dxf-sidebar .dxf-time {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--rv-text-muted);
+}
+
+/* The head row top-aligns (avatar vs two-line meta), but the right-side
+   controls (actions, assign pick, number pill) read better centred against
+   the 30px control row. */
+#dxf-sidebar .dxf-comment-head .dxf-comment-actions,
+#dxf-sidebar .dxf-comment-head .dxf-comment-review-pick,
+#dxf-sidebar .dxf-comment-head .dxf-num-pill {
+  align-self: center;
+}
+
+/* Hover-revealed action group (resolve + trash) */
+#dxf-sidebar .dxf-comment-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+#dxf-sidebar .dxf-comment:hover .dxf-comment-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+#dxf-sidebar .dxf-comment-actions button {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background .12s, color .12s;
+}
+#dxf-sidebar .dxf-comment-actions button svg { width: 16px; height: 16px; }
+#dxf-sidebar .dxf-resolve-btn:hover {
+  background: var(--rv-teal-bg);
+  color: var(--rv-teal);
+}
+#dxf-sidebar .dxf-delete-btn:hover {
+  background: var(--rv-danger-bg);
+  color: var(--rv-danger);
+  border: none;
+}
+#dxf-sidebar .dxf-delete-btn.is-armed {
+  background: var(--rv-danger);
+  color: #fff;
+  opacity: 1;
+  pointer-events: auto;
+  animation: dxf-arm-pulse 1s ease-in-out infinite;
+}
+/* Busy state while the delete AJAX is in flight — keep the button visible
+   (not hover-gated) so the spinner is actually seen. */
+#dxf-sidebar .dxf-delete-btn.is-busy {
+  opacity: 1;
+  pointer-events: none;
+}
+#dxf-sidebar .dxf-comment .dxf-comment-actions:has(.is-busy) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Generic inline spinner for async buttons (delete, future uses). Inherits
+   currentColor so it adapts to the button's own state colours. */
+.dxf-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: dxf-spin .7s linear infinite;
+}
+@keyframes dxf-spin { to { transform: rotate(360deg); } }
+#dxf-sidebar .dxf-edit-btn:hover {
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+}
+
+/* Inline comment editor (own comments) */
+#dxf-sidebar .dxf-edit-form { margin: 6px 0 2px; padding: 0 14px; }
+#dxf-sidebar .dxf-edit-text {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 60px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--rv-text);
+  background: var(--rv-surface-hi);
+  border: 1px solid var(--rv-border-hi);
+  border-radius: 7px;
+}
+#dxf-sidebar .dxf-edit-text:focus { outline: none; border-color: var(--rv-accent); }
+#dxf-sidebar .dxf-edit-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+
+/* Comment-number badge (header right) — mirrors the canvas pin: same circle,
+   same brand colour, same white bold digit, so reviewers can match a pin
+   to its card at a glance. Uses --rv-pin-accent (set in JS from the brand
+   accent) rather than --rv-accent because Bricks overrides --rv-accent to
+   its own primary in the builder — that would diverge from the blue pin. */
+#dxf-sidebar .dxf-num-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--rv-pin-accent, var(--rv-accent));
+  /* Contrast with the accent: white on a dark accent (Bricks blue), near-black
+     on a light accent (Elementor's dark-mode magenta). */
+  color: var(--rv-accent-text, #fff);
+  font: 700 12px/1 -apple-system, system-ui, sans-serif;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+}
+/* Status badges have fixed green/orange backgrounds that always pair with white. */
+#dxf-sidebar .dxf-num-pill.is-resolved { background: #3fbf6e; opacity: .55; color: #fff; }
+#dxf-sidebar .dxf-num-pill.is-progress { background: #d97706; color: #fff; }
+
+/* "Assign to Review" mini pill — shown next to the number badge only when
+   the comment isn't attached to any Review. Click opens the same popover
+   the global Reviews dropdown uses. Editors only. */
+#dxf-sidebar .dxf-comment-review-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  margin-right: 4px;
+  border: 1px dashed var(--rv-border-hi);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--rv-text-sub);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--rv-font-stack);
+  transition: color .12s, border-color .12s, background .12s;
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-comment-review-pick:hover {
+  color: var(--rv-text);
+  border-color: var(--rv-accent);
+  background: var(--rv-surface-hi);
+}
+#dxf-sidebar .dxf-comment-review-pick svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Body */
+#dxf-sidebar .dxf-comment-body {
+  padding: 9px 14px 11px;
+  font-size: 14px;
+  color: var(--rv-text);
+  line-height: 1.6;
+  opacity: 1;
+  margin: 0;
+  word-break: break-word;
+}
+
+/* Screenshot button — clicking opens the lightbox directly. The inline
+   thumbnail was distracting; the screenshot now only exists at full-size,
+   on demand, which keeps the card compact. */
+#dxf-sidebar .dxf-shot-wrap {
+  padding: 0 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+#dxf-sidebar .dxf-shot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  color: var(--rv-text-sub);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--rv-font-stack);
+  transition: color .12s, border-color .12s, background .12s;
+}
+#dxf-sidebar .dxf-shot-btn:hover {
+  border-color: var(--rv-border-hi);
+  background: var(--rv-surface-hi);
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-shot-btn svg { width: 12px; height: 12px; }
+#dxf-sidebar .dxf-shot {
+  display: inline-block;
+  width: 138px;
+  height: 88px;
+  border-radius: 7px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  overflow: hidden;
+  cursor: pointer;
+  margin: 0;
+}
+#dxf-sidebar .dxf-shot:hover { border-color: var(--rv-border-hi); transform: none; }
+#dxf-sidebar .dxf-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+
+/* Emoji reactions — one-tap ack chips above the foot. Quiet ghost buttons;
+   chips with a count get a subtle fill, the requester's own reactions get
+   the accent ring. Static variant (read-only reviews) drops the hover. */
+#dxf-sidebar .dxf-reactions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 14px 8px;
+}
+#dxf-sidebar .dxf-react {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--rv-font-stack);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--rv-text-sub);
+  cursor: pointer;
+  transition: background .12s, border-color .12s, transform .08s;
+}
+/* Emoji delivered via CSS content so WordPress's twemoji replacement (which
+   rewrites emoji TEXT nodes into <img class="emoji"> tags) can't touch them —
+   this guarantees native system emoji on every platform. */
+#dxf-sidebar .dxf-react-emoji::before {
+  font-size: 15px;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+#dxf-sidebar .dxf-react-emoji[data-e="thumbs_up"]::before { content: "\1F44D"; }
+#dxf-sidebar .dxf-react-emoji[data-e="heart"]::before     { content: "\2764\FE0F"; }
+#dxf-sidebar .dxf-react-emoji[data-e="check"]::before     { content: "\2705"; }
+#dxf-sidebar .dxf-react-emoji[data-e="eyes"]::before      { content: "\1F440"; }
+#dxf-sidebar .dxf-react:hover { background: var(--rv-surface-hi); transform: scale(1.06); }
+#dxf-sidebar .dxf-react.has-count {
+  background: var(--rv-surface);
+  border-color: var(--rv-border-hi, rgba(255,255,255,.12));
+}
+#dxf-sidebar .dxf-react.is-mine {
+  border-color: var(--rv-accent);
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-react.is-static { cursor: default; }
+#dxf-sidebar .dxf-react.is-static:hover { background: var(--rv-surface); transform: none; }
+#dxf-sidebar .dxf-react-count { font-weight: 600; }
+/* Declutter: zero-count chips are a PICKER, not information — fade them out
+   until the card is hovered. Chips with reactions stay visible. Touch
+   devices (no hover) keep everything visible. Same treatment for the
+   "Unassigned" pill: an action, not information. */
+@media (hover: hover) {
+  /* Zero-count chips collapse their width too, so the chips that DO have
+     reactions slide left and sit flush instead of floating mid-row. */
+  #dxf-sidebar .dxf-react:not(.has-count) {
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    margin-right: -2px; /* swallow the flex gap while collapsed */
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transition: max-width .18s ease, padding .18s ease, margin .18s ease, opacity .15s;
+  }
+  #dxf-sidebar .dxf-comment:hover .dxf-react:not(.has-count),
+  #dxf-sidebar .dxf-reactions:focus-within .dxf-react:not(.has-count) {
+    max-width: 72px;
+    padding-left: 7px;
+    padding-right: 7px;
+    margin-right: 0;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #dxf-sidebar .dxf-pill--assign.is-unassigned {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+  }
+  #dxf-sidebar .dxf-comment:hover .dxf-pill--assign.is-unassigned {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Reply peek — collapsed-thread preview shown above the foot. Looks like a
+   quiet, clickable quote of the most recent reply. Whole row is the button.
+   The left accent stripe is tinted with the replying user's colour so the
+   reply visually ties to the author; the body radius matches the card's
+   own corner radius so it looks like a real chip, not a flag. */
+#dxf-sidebar .dxf-reply-peek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 28px);
+  margin: 0 14px 8px;
+  padding: 7px 10px;
+  border: 0;
+  border-left: 3px solid var(--rv-reply-user, var(--rv-accent));
+  background: var(--rv-surface);
+  border-radius: var(--rv-radius);
+  cursor: pointer;
+  font-family: var(--rv-font-stack);
+  font-size: 12px;
+  color: var(--rv-text-sub);
+  text-align: left;
+  transition: background .12s, border-color .12s;
+}
+#dxf-sidebar .dxf-reply-peek:hover {
+  background: var(--rv-surface-hi);
+}
+#dxf-sidebar .dxf-reply-peek .dxf-avatar--sm {
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-reply-peek-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dxf-sidebar .dxf-reply-peek-text strong {
+  font-weight: 600;
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-reply-peek-body { color: var(--rv-text); margin-left: 4px; }
+#dxf-sidebar .dxf-reply-peek-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--rv-text-muted);
+}
+#dxf-sidebar .dxf-reply-peek-more {
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--rv-reply-user, var(--rv-accent));
+  color: #fff;
+  font-weight: 600;
+}
+#dxf-sidebar .dxf-comment-pad { padding: 0 14px 8px; }
+/* Triage sits ABOVE the header. Provide the card's top padding here so the
+   head can drop its own padding-top, and zero out the pill's intrinsic
+   margin-bottom so the gap to the author row is controlled by this block. */
+#dxf-sidebar .dxf-comment-pad--top { padding: 13px 14px 10px; }
+#dxf-sidebar .dxf-comment-pad--top .dxf-triage { margin-bottom: 0; }
+#dxf-sidebar .dxf-comment-pad--top + .dxf-comment-head { padding-top: 0; }
+
+/* Top tag row: triage (left) + "Element removed" (right). With one child it
+   left-aligns (so a lone "Element removed" sits on the left); with both, the
+   orphaned tag pushes to the right, in-line with the triage tag. */
+#dxf-sidebar .dxf-comment-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 14px 10px;
+}
+#dxf-sidebar .dxf-comment-toprow .dxf-triage { margin-bottom: 0; }
+#dxf-sidebar .dxf-comment-toprow + .dxf-comment-head { padding-top: 0; }
+
+/* Footer */
+#dxf-sidebar .dxf-comment-foot {
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--rv-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 0;
+  background: transparent;
+}
+#dxf-sidebar .dxf-comment-foot-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Pill controls (status + assignee) — wraps a native <select> for behaviour. */
+#dxf-sidebar .dxf-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  color: var(--rv-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: all .12s;
+  font-family: var(--rv-font-stack);
+}
+#dxf-sidebar .dxf-pill:hover {
+  border-color: var(--rv-border-hi);
+  background: var(--rv-surface-hi);
+}
+#dxf-sidebar .dxf-pill.is-static { cursor: default; }
+#dxf-sidebar .dxf-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-pill-label {
+  white-space: nowrap;
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-pill-chev svg { width: 11px; height: 11px; color: var(--rv-text-muted); }
+#dxf-sidebar .dxf-pill-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-pill-glyph svg { width: 12px; height: 12px; color: var(--rv-text-muted); }
+
+/* Thread-count + Reply footer buttons. Cards with replies emphasise the
+   count so a long thread doesn't slip past the reviewer. */
+#dxf-sidebar .dxf-thread-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--rv-accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--rv-font-stack);
+  transition: color .12s, background .12s, border-color .12s;
+}
+#dxf-sidebar .dxf-comment.has-replies .dxf-thread-toggle {
+  background: var(--rv-surface);
+  border-color: var(--rv-border);
+}
+#dxf-sidebar .dxf-thread-toggle svg { width: 13px; height: 13px; }
+#dxf-sidebar .dxf-thread-toggle:hover {
+  background: var(--rv-surface-hi);
+  border-color: var(--rv-border-hi);
+}
+#dxf-sidebar .dxf-thread-toggle.is-active {
+  color: var(--rv-accent);
+  background: var(--rv-surface-hi);
+  border-color: var(--rv-border-hi);
+}
+#dxf-sidebar .dxf-reply-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  color: var(--rv-text-sub);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--rv-font-stack);
+  transition: all .12s;
+}
+#dxf-sidebar .dxf-reply-open:hover {
+  background: var(--rv-surface-hi);
+  color: var(--rv-text);
+  border-color: var(--rv-border-hi);
+}
+#dxf-sidebar .dxf-reply-open.is-active {
+  background: var(--rv-accent-bg);
+  border-color: var(--rv-accent);
+  color: var(--rv-accent);
+}
+/* Thread count rides inside the Reply button (replaces the old separate
+   "X replies" pill) */
+#dxf-sidebar .dxf-reply-count {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: var(--rv-accent-bg);
+  color: var(--rv-accent);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+#dxf-sidebar .dxf-reply-open.is-active .dxf-reply-count {
+  background: var(--rv-accent);
+  color: #fff;
+}
+
+/* ── Inline thread panel (per-card expand) ──────────────────────────────── */
+#dxf-sidebar .dxf-thread-panel {
+  border-top: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  border-radius: 0 0 calc(var(--rv-radius) - 1px) calc(var(--rv-radius) - 1px);
+  padding: 12px 14px;
+}
+#dxf-sidebar .dxf-replies {
+  margin: 0 0 10px 0;
+  border-left: none;
+  padding-left: 0;
+}
+#dxf-sidebar .dxf-reply {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+#dxf-sidebar .dxf-reply:last-of-type { margin-bottom: 12px; }
+#dxf-sidebar .dxf-reply .dxf-avatar--sm,
+#dxf-sidebar .dxf-reply .dxf-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-reply strong {
+  display: inline;
+  color: var(--rv-text);
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+#dxf-sidebar .dxf-reply .dxf-time {
+  display: inline;
+  color: var(--rv-text-muted);
+  font-size: 11px;
+}
+#dxf-sidebar .dxf-reply p {
+  font-size: 13px;
+  color: var(--rv-text);
+  line-height: 1.55;
+  opacity: 1;
+  margin: 2px 0 0;
+  word-break: break-word;
+}
+
+/* Inline reply textarea (always-visible in expanded thread) */
+#dxf-sidebar .dxf-thread-panel .dxf-inline-reply {
+  margin: 0;
+  padding: 0;
+}
+#dxf-sidebar .dxf-thread-panel .dxf-inline-reply-text {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1.5px solid var(--rv-border-hi);
+  background: var(--rv-modal);
+  color: var(--rv-text);
+  font-size: 13px;
+  font-family: var(--rv-font-stack);
+  resize: none;
+  outline: none;
+  box-shadow: none;
+  transition: box-shadow .15s, border-color .15s;
+}
+#dxf-sidebar .dxf-thread-panel .dxf-inline-reply-text:focus {
+  border-color: var(--rv-accent);
+  box-shadow: 0 0 0 3px var(--rv-accent-bg);
+}
+#dxf-sidebar .dxf-thread-panel .dxf-inline-reply-text::placeholder { color: var(--rv-text-muted); }
+#dxf-sidebar .dxf-thread-panel .dxf-inline-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+#dxf-sidebar .dxf-btn {
+  font-family: var(--rv-font-stack);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background .12s, opacity .12s;
+  border: 1px solid var(--rv-border);
+  background: transparent;
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-btn-ghost {
+  background: transparent;
+  color: var(--rv-text-sub);
+  border: 1px solid var(--rv-border);
+}
+#dxf-sidebar .dxf-btn-ghost:not(.is-disabled):not(:disabled):hover { background: var(--rv-surface-hi); color: var(--rv-text); }
+/* Soft-disabled (aria-disabled) + native :disabled — no hover affordance,
+   reduced opacity, not-allowed cursor. Used by the "Mark page as approved"
+   button while open comments still exist. */
+#dxf-sidebar .dxf-btn-ghost.is-disabled,
+#dxf-sidebar .dxf-btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+#dxf-sidebar .dxf-btn-primary {
+  background: var(--rv-accent);
+  color: var(--rv-accent-text);
+  border-color: var(--rv-accent);
+}
+#dxf-sidebar .dxf-btn-primary:hover { opacity: 0.92; }
+#dxf-sidebar .dxf-btn-primary:disabled { opacity: 0.45; cursor: default; }
+#dxf-sidebar .dxf-btn-full { width: 100%; }
+
+/* Hide legacy elements that the design replaces */
+#dxf-sidebar .dxf-controls { display: none; }
+#dxf-sidebar .dxf-thread-count { display: none; }
+#dxf-sidebar .dxf-viewport-bar { display: none; }
+/* Old .dxf-pin-num bubble is replaced by .dxf-num-pill — hide if it appears */
+#dxf-sidebar .dxf-comment-head .dxf-pin-num { display: none; }
+
+/* Identity gate (front-end) — match design tokens */
+#dxf-sidebar .dxf-identity {
+  padding: 18px;
+}
+#dxf-sidebar .dxf-identity-intro {
+  font-size: 13px;
+  color: var(--rv-text-sub);
+  margin-bottom: 12px;
+}
+#dxf-sidebar .dxf-identity-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rv-text-muted);
+  margin: 10px 0 4px;
+}
+#dxf-sidebar .dxf-identity-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-surface);
+  color: var(--rv-text);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: var(--rv-font-stack);
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+}
+#dxf-sidebar .dxf-identity-input:focus {
+  border-color: var(--rv-accent);
+  box-shadow: 0 0 0 3px var(--rv-accent-bg);
+}
+#dxf-sidebar .dxf-identity-error {
+  font-size: 12px;
+  color: var(--rv-danger);
+  min-height: 16px;
+  margin: 8px 0 0;
+}
+#dxf-sidebar .dxf-identity-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Footer (FE approval area) */
+#dxf-sidebar .dxf-sidebar-footer {
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--rv-border);
+  background: transparent;
+}
+#dxf-sidebar .dxf-sidebar-footer:empty { display: none; }
+#dxf-sidebar .dxf-identity-strip {
+  font-size: 12px;
+  color: var(--rv-text-muted);
+  margin-bottom: 8px;
+}
+#dxf-sidebar .dxf-identity-strip strong { color: var(--rv-text); }
+#dxf-sidebar .dxf-link-btn {
+  background: none;
+  border: none;
+  color: var(--rv-accent);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: underline;
+}
+#dxf-sidebar .dxf-approved-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--rv-teal-bg);
+  color: var(--rv-teal);
+  border: 1px solid var(--rv-teal);
+  font-size: 13px;
+  font-weight: 600;
+}
+#dxf-sidebar .dxf-approve-confirm {
+  border: 1px solid var(--rv-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--rv-surface);
+}
+#dxf-sidebar .dxf-approve-auth {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--rv-text);
+  cursor: pointer;
+  line-height: 1.4;
+}
+#dxf-sidebar .dxf-approve-note {
+  margin: 8px 0 10px;
+  font-size: 11px;
+  color: var(--rv-text-muted);
+  line-height: 1.4;
+}
+#dxf-sidebar .dxf-approve-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Comment form popover (drop on canvas-click) ───────────────────────── */
+#dxf-comment-form {
+  font-family: var(--rv-font-stack);
+  background: var(--rv-modal);
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius);
+  box-shadow: var(--rv-shadow-pop);
+  color: var(--rv-text);
+}
+#dxf-comment-form .dxf-form-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rv-border);
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+#dxf-comment-form .dxf-form-header span { flex: 1; color: var(--rv-text); }
+#dxf-comment-form .dxf-form-close {
+  background: transparent;
+  border: none;
+  color: var(--rv-text-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+#dxf-comment-form .dxf-form-textarea {
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--rv-text);
+  font-size: 13px;
+  font-family: var(--rv-font-stack);
+  resize: vertical;
+  min-height: 80px;
+}
+#dxf-comment-form .dxf-form-textarea::placeholder { color: var(--rv-text-muted); }
+#dxf-comment-form .dxf-form-error { color: var(--rv-danger); padding: 0 12px; font-size: 12px; }
+#dxf-comment-form .dxf-form-shot { padding: 0 12px; font-size: 11px; color: var(--rv-text-muted); }
+#dxf-comment-form .dxf-form-shot--fail { color: var(--rv-danger); }
+#dxf-comment-form .dxf-form-attach,
+#dxf-comment-form .dxf-form-actions {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--rv-border);
+}
+#dxf-comment-form .dxf-attach-btn,
+#dxf-comment-form .dxf-annot-btn {
+  background: transparent;
+  border: 1px solid var(--rv-border);
+  color: var(--rv-text-sub);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--rv-font-stack);
+}
+#dxf-comment-form .dxf-attach-btn:hover,
+#dxf-comment-form .dxf-annot-btn:hover { background: var(--rv-surface-hi); color: var(--rv-text); }
+
+/* Lightbox + summary modal scenes */
+#dxf-lightbox,
+#dxf-summary,
+#dxf-annotator { font-family: var(--rv-font-stack); }
+#dxf-summary .dxf-summary-inner {
+  background: var(--rv-modal);
+  color: var(--rv-text);
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius-lg);
+  box-shadow: var(--rv-shadow-modal);
+}
+#dxf-summary .dxf-summary-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rv-border);
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+#dxf-summary .dxf-summary-head span { flex: 1; }
+#dxf-summary .dxf-summary-close {
+  background: transparent;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+}
+
+/* ── Card left edge: per-user colour (avatar carries the same hue) ───────── */
+#dxf-sidebar .dxf-comment {
+  border-left-color: var(--rv-user, var(--rv-teal));
+}
+#dxf-sidebar .dxf-comment.is-resolved {
+  border-left-color: var(--rv-user, var(--rv-teal));
+  /* opacity on body content already conveys resolved state visually */
+}
+#dxf-sidebar .dxf-comment.is-in-progress {
+  border-left-color: var(--rv-user, #f59e0b);
+}
+
+/* ── Custom popover (status / assignee / device / round) ────────────────── */
+.dxf-popover {
+  font-family: var(--rv-font-stack);
+  background: var(--rv-modal);
+  color: var(--rv-text);
+  border: 1px solid var(--rv-border);
+  border-radius: 10px;
+  box-shadow: var(--rv-shadow-pop);
+  overflow: hidden;
+  min-width: 164px;
+  padding: 4px 0;
+}
+/* Action rows in popovers (e.g. "+ New Review") — visually a command,
+   not a filter option. */
+.dxf-popover-item--action {
+  color: var(--rv-accent) !important;
+  font-weight: 600;
+  border-top: 1px solid var(--rv-border);
+}
+.dxf-popover-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--rv-text);
+  text-align: left;
+  font-family: var(--rv-font-stack);
+  transition: background .1s;
+}
+.dxf-popover-item:hover { background: var(--rv-surface-hi); }
+.dxf-popover-item.is-active {
+  background: var(--rv-accent-bg);
+  color: var(--rv-accent);
+  font-weight: 500;
+}
+.dxf-popover-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dxf-popover-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dxf-popover-glyph { display: inline-flex; }
+.dxf-popover-glyph svg { width: 14px; height: 14px; color: var(--rv-text-muted); }
+.dxf-popover-label { flex: 1; min-width: 0; }
+.dxf-popover-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rv-text-muted);
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--rv-surface);
+  min-width: 18px;
+  text-align: center;
+}
+.dxf-popover-item.is-active .dxf-popover-count {
+  background: var(--rv-accent);
+  color: #fff;
+}
+.dxf-popover-check {
+  color: var(--rv-accent);
+  font-size: 13px;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* Pill triggers: ensure they look like the design buttons (not <label>s) */
+#dxf-sidebar button.dxf-pill,
+#dxf-sidebar button.dxf-dropdown {
+  font: inherit;
+  outline: none;
+}
+/* ── Inline reply: attach button + file pills ──────────────────────────── */
+#dxf-sidebar .dxf-inline-reply-files:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 0;
+}
+#dxf-sidebar .dxf-inline-reply-attach {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-modal);
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all .12s;
+}
+#dxf-sidebar .dxf-inline-reply-attach svg { width: 13px; height: 13px; }
+#dxf-sidebar .dxf-inline-reply-attach:hover {
+  background: var(--rv-surface-hi);
+  color: var(--rv-text);
+  border-color: var(--rv-border-hi);
+}
+#dxf-sidebar .dxf-inline-reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+#dxf-sidebar .dxf-inline-reply-actions .dxf-inline-reply-attach { margin-right: auto; }
+.dxf-file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 99px;
+  background: var(--rv-modal);
+  border: 1px solid var(--rv-border);
+  color: var(--rv-text);
+  font-size: 11px;
+  font-family: var(--rv-font-stack);
+}
+.dxf-file-pill .dxf-file-remove {
+  background: transparent;
+  border: none;
+  color: var(--rv-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 0 0 2px;
+}
+.dxf-file-pill .dxf-file-remove:hover { color: var(--rv-danger); }
+
+/* Sidebar typography baseline — anchors children so the FE host page's
+   own font-size scale doesn't inflate the device dropdown label etc. */
+#dxf-sidebar { font-size: 13px; line-height: 1.5; }
+#dxf-sidebar .dxf-dropdown,
+#dxf-sidebar .dxf-dropdown-label,
+#dxf-sidebar .dxf-pill,
+#dxf-sidebar .dxf-pill-label { font-size: 12px; }
+
+/* Tools row = [device filter] [review switcher] [Resolved toggle]. When a long
+   Review name makes the row overflow, ONLY the review switcher must give way and
+   ellipsize — the device filter and Resolved toggle keep their size. The review
+   container (.dxf-review-bar) shipped flex-shrink:0, which forced the device
+   pill ("All devices") to squish instead; override that so the bar (and the name
+   inside it) is the one that shrinks. */
+#dxf-sidebar .dxf-tools-row { min-width: 0; }
+#dxf-sidebar .dxf-tools-row > .dxf-device-drop,
+#dxf-sidebar .dxf-tools-row > .dxf-resolved-toggle { flex: 0 0 auto; }
+#dxf-sidebar .dxf-review-bar { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+#dxf-sidebar .dxf-review-drop,
+#dxf-sidebar .dxf-review-label { min-width: 0; max-width: 100%; }
+#dxf-sidebar .dxf-review-drop .dxf-dropdown-label,
+#dxf-sidebar .dxf-review-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Inside the dropdown button the label absorbs the squeeze; the chevron stays. */
+#dxf-sidebar .dxf-review-drop .dxf-dropdown-label { flex: 1 1 auto; }
+#dxf-sidebar .dxf-review-drop .dxf-dropdown-chev  { flex: 0 0 auto; }
+
+/* ── Builder approval banner (footer) ──────────────────────────────────── */
+#dxf-sidebar .dxf-approval-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+}
+#dxf-sidebar .dxf-approval-banner-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--rv-teal-bg);
+  border: 1px solid var(--rv-teal);
+}
+#dxf-sidebar .dxf-approval-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--rv-teal);
+  color: #fff;
+  flex-shrink: 0;
+}
+#dxf-sidebar .dxf-approval-banner-icon svg { width: 12px; height: 12px; }
+#dxf-sidebar .dxf-approval-banner-body { flex: 1; min-width: 0; }
+#dxf-sidebar .dxf-approval-banner-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rv-text);
+}
+#dxf-sidebar .dxf-approval-banner-meta {
+  font-size: 11px;
+  color: var(--rv-text-muted);
+  margin-top: 2px;
+  word-break: break-all;
+}
+#dxf-sidebar .dxf-approval-revert {
+  align-self: flex-end;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Cursor-mode pill — floating bottom-centre Browse ⇄ Comment toggle.
+   Shown while the comments panel is open. Themed via --rv-* so it adopts the
+   host's palette (incl. Elementor's editor accent in light/dark).
+--------------------------------------------------------------------------- */
+#dxf-mode-pill {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%) translateY(10px);
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--rv-panel-bg, #1f2124);
+  border: 1px solid var(--rv-border, rgba(255,255,255,.12));
+  border-radius: 999px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.28), 0 2px 6px rgba(0,0,0,.18);
+  font-family: var(--rv-font-stack, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  z-index: 2147483500;
+  opacity: 0;
+  transition: opacity .16s ease, transform .16s ease;
+  pointer-events: none;
+}
+#dxf-mode-pill.is-visible {
+  display: inline-flex;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+#dxf-mode-pill .dxf-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rv-text-muted, #9da5ae);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .14s ease, color .14s ease;
+}
+#dxf-mode-pill .dxf-mode-btn:hover { color: var(--rv-text, #d5d8dc); }
+#dxf-mode-pill .dxf-mode-btn svg { width: 16px; height: 16px; }
+#dxf-mode-pill .dxf-mode-btn.is-active {
+  background: var(--rv-accent, #ff8d27);
+  color: var(--rv-accent-text, #fff);
+}
+@media (max-width: 600px) {
+  #dxf-mode-pill .dxf-mode-btn span { display: none; }
+  #dxf-mode-pill .dxf-mode-btn { padding: 10px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Gutenberg top-bar "Comments" toggle — injected into the editor header next to
+   Preview/Settings; opens the full floating panel. Styled to sit with the
+   native header controls. Once present, the floating FAB is hidden.
+--------------------------------------------------------------------------- */
+#dxf-gb-toggle.dxf-gb-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0 4px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#dxf-gb-toggle.dxf-gb-toggle:hover { background: rgba(127, 127, 127, .12); }
+#dxf-gb-toggle.dxf-gb-toggle svg { width: 20px; height: 20px; }
+#dxf-gb-toggle.dxf-gb-toggle.is-pressed {
+  background: var(--wp-admin-theme-color, #ff8d27);
+  color: #fff;
+}
+body.dxf-gb-has-toolbar #dxf-fab { display: none !important; }
+
+/* Optimistic comment — shown in the sidebar the moment "Add comment" is
+   clicked, before the server confirms the save. Dimmed + an orange "Sending…"
+   timestamp so it reads as in-flight; reconciled into a normal card on success
+   or removed on failure (engine.js submitComment). */
+#dxf-sidebar .dxf-comment.is-pending { opacity: .6; }
+#dxf-sidebar .dxf-comment.is-pending .dxf-time {
+  color: var(--rv-accent, #ff8d27);
+  font-style: italic;
+}

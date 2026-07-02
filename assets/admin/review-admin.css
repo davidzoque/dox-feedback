@@ -1,0 +1,12 @@
+/* Dox Feedback for Bricks — post-edit meta box styles only.
+   The admin-bar popout styles moved to quick-review.css when the popout was
+   unified. The badge (.dxf-ab-badge) also lives in quick-review.css now. */
+
+#dxf-review-meta-box .dxf-danger-btn {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+
+#dxf-review-meta-box .dxf-danger-btn:hover {
+  background: #fdf2f2;
+}

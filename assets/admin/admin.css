@@ -1,0 +1,167 @@
+/* Dox Feedback — Admin styles (Dox Studio brand) */
+
+/* ---------------------------------------------------------------------------
+   Dox Studio design tokens — shared with Dox Functions / Sales Booster so all
+   three plugins read as one branded suite (white surfaces + orange accent).
+--------------------------------------------------------------------------- */
+:root {
+  --dox-orange: #ff8d27;
+  --dox-orange-soft: #fff4e8;
+  --dox-orange-dark: #e57514;
+  --dox-orange-tint: #ffe7d0;
+  --dox-text: #1c1c1c;
+  --dox-muted: #7a7a7a;
+  --dox-border: #ececec;
+  --dox-bg: #f6f7f9;
+  --dox-radius: 14px;
+  --dox-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+}
+
+/* ---------------------------------------------------------------------------
+   Branded header bar — logo + product pill. Reused on Settings and Getting
+   Started (markup: DXF_Admin::brand_header()).
+--------------------------------------------------------------------------- */
+.dxf-brandbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid var(--dox-border);
+  border-radius: var(--dox-radius);
+  box-shadow: var(--dox-shadow);
+  padding: 18px 22px;
+  margin: 16px 20px 22px 0;
+}
+.dxf-brandbar__brand { display: flex; align-items: center; gap: 12px; }
+.dxf-brandbar__logo { height: 30px; width: auto; display: block; }
+.dxf-brandbar__pill {
+  display: inline-block;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  color: var(--dox-orange-dark);
+  background: var(--dox-orange-soft);
+  border: 1px solid var(--dox-orange-tint);
+}
+.dxf-brandbar__meta {
+  font-size: 12px;
+  color: var(--dox-muted);
+}
+.dxf-brandbar__meta a { color: var(--dox-orange-dark); text-decoration: none; }
+.dxf-brandbar__meta a:hover { text-decoration: underline; }
+
+/* The brand bar replaces the page <h1>; hide WP's default screen title on our
+   own screens so it doesn't duplicate above the bar. */
+.dxf-settings > h1:first-child,
+.dxf-welcome > h1.dxf-screen-reader {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0); overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   Settings page layout
+--------------------------------------------------------------------------- */
+.dxf-settings .nav-tab-wrapper {
+  margin: 0 20px 22px 0;
+  border-bottom: 1px solid var(--dox-border);
+}
+.dxf-settings .nav-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin: 0 2px -1px 0;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--dox-muted);
+  transition: color .15s, border-color .15s;
+}
+.dxf-settings .nav-tab:hover {
+  color: var(--dox-orange-dark);
+  background: transparent;
+}
+.dxf-settings .nav-tab-active,
+.dxf-settings .nav-tab-active:focus,
+.dxf-settings .nav-tab-active:hover {
+  color: var(--dox-text);
+  border-bottom-color: var(--dox-orange);
+  background: transparent;
+}
+
+.dxf-settings .dxf-settings__body {
+  background: #fff;
+  border: 1px solid var(--dox-border);
+  border-radius: var(--dox-radius);
+  box-shadow: var(--dox-shadow);
+  padding: 8px 24px 24px;
+  margin: 0 20px 24px 0;
+  max-width: 1200px;
+}
+.dxf-settings .dxf-settings__body h2 {
+  font-size: 18px;
+  margin: 18px 0 4px;
+}
+
+.dxf-settings .form-table th {
+  width: 220px;
+  padding-top: 18px;
+}
+
+/* Orange focus rings + accent on form controls inside our panel */
+.dxf-settings .dxf-settings__body input[type=text]:focus,
+.dxf-settings .dxf-settings__body input[type=email]:focus,
+.dxf-settings .dxf-settings__body input[type=url]:focus,
+.dxf-settings .dxf-settings__body input[type=number]:focus,
+.dxf-settings .dxf-settings__body select:focus,
+.dxf-settings .dxf-settings__body textarea:focus {
+  border-color: var(--dox-orange);
+  box-shadow: 0 0 0 1px var(--dox-orange);
+  outline: none;
+}
+
+/* Primary buttons inside our screens adopt the Dox orange */
+.dxf-settings .button-primary,
+.dxf-welcome .button-primary {
+  background: var(--dox-orange);
+  border-color: var(--dox-orange-dark);
+  color: #fff;
+  text-shadow: none;
+  box-shadow: 0 1px 0 var(--dox-orange-dark);
+}
+.dxf-settings .button-primary:hover,
+.dxf-settings .button-primary:focus,
+.dxf-welcome .button-primary:hover,
+.dxf-welcome .button-primary:focus {
+  background: var(--dox-orange-dark);
+  border-color: var(--dox-orange-dark);
+  color: #fff;
+}
+
+/* Section headings inside tab forms */
+.dxf-settings h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d2327;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin: 28px 0 0;
+  padding: 16px 0 8px;
+  border-top: 1px solid #dcdcde;
+}
+
+.dxf-settings .form-table:first-of-type + h3,
+.dxf-settings h3:first-child {
+  margin-top: 0;
+  border-top: none;
+}
+
+/* Shared utility — the comment engine relies on it to toggle elements. */
+.hidden {
+  display: none !important;
+}

@@ -1,0 +1,1029 @@
+/* Dox Feedback for Bricks — Client review mode (front end)
+   -------------------------------------------------------------------------
+   The shared sidebar / comment-card / form / pin / lightbox styling is loaded
+   from builder.css so the reviewer UI matches the in-builder experience. This
+   file only adds the front-end-specific pieces: the FAB, comment-mode cursor,
+   the identity gate, the sticky footer (identity strip + approval) and a few
+   layout helpers. It depends on the design tokens defined in builder.css. */
+
+/* ---------------------------------------------------------------------------
+   Stacking order — the builder pin layer sits at z 2147483000 so pins float
+   above arbitrary page content. Lift our own UI above the pins so panels are
+   never obscured by a pin.
+--------------------------------------------------------------------------- */
+#dxf-sidebar      { z-index: 2147483610 !important; }
+
+/* ---------------------------------------------------------------------------
+   Reviewer footer actions — "I'm done reviewing" + Approve, side by side.
+   They wrap to a stack on a very narrow sidebar.
+--------------------------------------------------------------------------- */
+#dxf-sidebar .dxf-footer-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+#dxf-sidebar .dxf-footer-actions > .dxf-btn,
+#dxf-sidebar .dxf-footer-actions > .dxf-approved-state,
+#dxf-sidebar .dxf-footer-actions > .dxf-done-state {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+#dxf-sidebar .dxf-footer-actions:empty { display: none; }
+/* The done button is the primary reviewer action — solid accent fill, white
+   text (uses the accent var so white-label theming still applies). */
+#dxf-sidebar .dxf-done-btn {
+  background: var(--rv-accent, #ff8d27) !important;
+  border-color: var(--rv-accent, #ff8d27) !important;
+  color: #fff !important;
+}
+#dxf-sidebar .dxf-done-btn:hover {
+  filter: brightness(0.93);
+}
+#dxf-sidebar .dxf-done-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--rv-accent, #ff8d27);
+}
+#dxf-sidebar .dxf-done-state svg { width: 15px; height: 15px; }
+
+/* "Reviewed — undo" toggle (multi-page, after a page is marked reviewed). */
+#dxf-sidebar .dxf-reviewed-toggle.is-reviewed {
+  border-color: var(--rv-teal, #10b981) !important;
+  color: var(--rv-teal, #10b981) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+#dxf-sidebar .dxf-reviewed-toggle.is-reviewed svg { width: 14px; height: 14px; }
+
+/* Single-page "Finish & notify developer" → inline optional-note composer. */
+#dxf-sidebar .dxf-finish-note {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#dxf-sidebar .dxf-finish-note textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 54px;
+  border-radius: 8px;
+  border: 1px solid var(--rv-border, rgba(255,255,255,.12));
+  padding: 8px 10px;
+  font: inherit;
+  background: var(--rv-surface-hi, rgba(255,255,255,.04));
+  color: var(--rv-text, #e3e6ea);
+}
+#dxf-sidebar .dxf-finish-note textarea:focus {
+  outline: none;
+  border-color: var(--rv-accent, #ff8d27);
+}
+#dxf-sidebar .dxf-finish-note-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+#dxf-comment-form { z-index: 2147483620 !important; }
+#dxf-lightbox     { z-index: 2147483640 !important; }
+
+/* ---------------------------------------------------------------------------
+   Comment-mode cursor — only on Bricks elements (the commentable targets)
+   Mirrors the custom SVG cursor injected into the builder canvas by
+   builder.js commentCursor() so the reviewer-facing UX matches what the
+   agency sees inside Bricks. Data-URL cursors can't reference CSS vars,
+   so the accent colour is hardcoded to the brand blue — it's a small
+   cursor glyph, not a primary brand surface. Falls back to crosshair on
+   browsers that don't support SVG cursors.
+
+   The crosshair covers the whole page in comment mode: the generic adapter
+   can anchor any element, so feedback works on Bricks, Elementor, Gutenberg
+   and plain-theme markup alike. Dox Feedback's own overlay UI is excluded below
+   (it gets the normal pointer affordances).
+--------------------------------------------------------------------------- */
+body.dxf-comment-mode,
+body.dxf-comment-mode * {
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='30'%20height='30'%20viewBox='0%200%2030%2030'%3E%3Cpath%20d='M5%203%20h20%20a2%202%200%200%201%202%202%20v12%20a2%202%200%200%201%20-2%202%20h-13%20l-5%205%20v-5%20h-2%20a2%202%200%200%201%20-2%20-2%20v-12%20a2%202%200%200%201%202%20-2%20z'%20fill='%232563eb'%20stroke='%23ffffff'%20stroke-width='2'%20stroke-linejoin='round'/%3E%3Cline%20x1='11'%20y1='11'%20x2='19'%20y2='11'%20stroke='%23ffffff'%20stroke-width='2'%20stroke-linecap='round'/%3E%3Cline%20x1='15'%20y1='7'%20x2='15'%20y2='15'%20stroke='%23ffffff'%20stroke-width='2'%20stroke-linecap='round'/%3E%3C/svg%3E") 7 24, crosshair !important;
+}
+
+/* Never let the reviewer UI inherit the crosshair. The lightbox is also
+   excluded — when an existing comment's screenshot is open the reviewer
+   isn't placing a new pin, they're looking at the image. */
+body.dxf-comment-mode #dxf-sidebar,
+body.dxf-comment-mode #dxf-sidebar *,
+body.dxf-comment-mode #dxf-comment-form,
+body.dxf-comment-mode #dxf-comment-form *,
+body.dxf-comment-mode #dxf-fab,
+body.dxf-comment-mode #dxf-fab *,
+body.dxf-comment-mode #dxf-mode-pill,
+body.dxf-comment-mode #dxf-mode-pill *,
+body.dxf-comment-mode #dxf-pages-nav,
+body.dxf-comment-mode #dxf-pages-nav *,
+body.dxf-comment-mode #dxf-off-scope,
+body.dxf-comment-mode #dxf-off-scope *,
+body.dxf-comment-mode #dxf-annotator,
+body.dxf-comment-mode #dxf-annotator *,
+body.dxf-comment-mode #dxf-lightbox,
+body.dxf-comment-mode #dxf-lightbox *,
+body.dxf-comment-mode #wpadminbar,
+body.dxf-comment-mode #wpadminbar * {
+  cursor: auto !important;
+}
+/* Inside the lightbox the image itself zooms-out on click, so use the
+   zoom-out affordance there specifically. */
+body.dxf-comment-mode #dxf-lightbox img { cursor: zoom-out !important; }
+/* Annotator opens while comment-mode is still active — the universal
+   comment-cursor rule above would otherwise overpower the pen cursor on
+   the draw canvas. Re-assert the pen cursor with the higher specificity
+   needed to beat that universal rule. */
+body.dxf-comment-mode #dxf-annotator button,
+#dxf-annotator button { cursor: pointer !important; }
+/* Defensive: even outside comment-mode, page-level CSS sometimes leaks
+   a cursor onto our overlays via universal selectors. Lock the nav-panel
+   + off-scope banner to standard pointer affordances. */
+#dxf-pages-nav, #dxf-pages-nav *,
+#dxf-off-scope, #dxf-off-scope * { cursor: default; }
+#dxf-pages-nav a, #dxf-pages-nav button,
+#dxf-off-scope a { cursor: pointer; }
+body.dxf-comment-mode #dxf-sidebar .dxf-sidebar-header { cursor: grab !important; }
+body.dxf-comment-mode #dxf-sidebar button,
+body.dxf-comment-mode #dxf-comment-form button,
+body.dxf-comment-mode #dxf-fab { cursor: pointer !important; }
+body.dxf-comment-mode #dxf-sidebar textarea,
+body.dxf-comment-mode #dxf-sidebar input { cursor: text !important; }
+
+/* ---------------------------------------------------------------------------
+   FAB — feedback launcher (bottom-right)
+--------------------------------------------------------------------------- */
+#dxf-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: inline-flex;
+  /* Default corner is bottom-right (above). The admin-chosen corner is applied
+     via a dxf-fab--* modifier class set in review.js. */
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--rv-accent, #ff8d27);
+  color: var(--rv-accent-text, #fff);
+  border: none;
+  border-radius: 50px;
+  box-shadow: 0 4px 16px var(--rv-accent-glow, rgba(255, 141, 39, .4));
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1;
+  white-space: nowrap;
+  z-index: 2147483600;
+  transition: transform .15s, box-shadow .15s, filter .15s;
+}
+#dxf-fab:hover  { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 6px 20px var(--rv-accent-glow, rgba(255, 141, 39, .45)); }
+#dxf-fab:active { transform: translateY(0); }
+#dxf-fab svg    { width: 18px; height: 18px; }
+
+/* Admin-chosen Feedback-button corner. bottom-right is the base above. */
+#dxf-fab.dxf-fab--bottom-left { right: auto; left: 24px; }
+#dxf-fab.dxf-fab--top-right   { bottom: auto; top: 24px; }
+#dxf-fab.dxf-fab--top-left    { bottom: auto; top: 24px; right: auto; left: 24px; }
+/* Keep a top-anchored button clear of the WP admin bar for logged-in users. */
+body.admin-bar #dxf-fab.dxf-fab--top-right,
+body.admin-bar #dxf-fab.dxf-fab--top-left { top: 56px; }
+
+/* ---------------------------------------------------------------------------
+   First-visit FAB tooltip — points new reviewers at the Feedback button
+   instead of force-opening the sidebar. Corner variant classes mirror the
+   FAB's admin-chosen position (set in review.js showFabTip).
+--------------------------------------------------------------------------- */
+#dxf-fab-tip {
+  position: fixed;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 280px;
+  padding: 12px 14px;
+  background: #1a1d24;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  z-index: 2147483599;
+  animation: dxf-fab-tip-in .25s ease-out;
+}
+/* Arrow: a rotated square matching the bubble's background + border. */
+#dxf-fab-tip::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #1a1d24;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+.dxf-fab-tip-close {
+  flex: none;
+  margin: -4px -6px 0 0;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, .55);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dxf-fab-tip-close:hover { color: #fff; }
+/* Corner variants — sit beside the FAB (24px inset, ~42px-tall button). */
+#dxf-fab-tip.dxf-fab-tip--bottom-right { right: 24px; bottom: 84px; }
+#dxf-fab-tip.dxf-fab-tip--bottom-right::after { bottom: -7px; right: 28px; }
+#dxf-fab-tip.dxf-fab-tip--bottom-left  { left: 24px; bottom: 84px; }
+#dxf-fab-tip.dxf-fab-tip--bottom-left::after  { bottom: -7px; left: 28px; }
+#dxf-fab-tip.dxf-fab-tip--top-right { right: 24px; top: 84px; }
+#dxf-fab-tip.dxf-fab-tip--top-right::after { top: -7px; right: 28px; transform: rotate(225deg); }
+#dxf-fab-tip.dxf-fab-tip--top-left  { left: 24px; top: 84px; }
+#dxf-fab-tip.dxf-fab-tip--top-left::after  { top: -7px; left: 28px; transform: rotate(225deg); }
+body.admin-bar #dxf-fab-tip.dxf-fab-tip--top-right,
+body.admin-bar #dxf-fab-tip.dxf-fab-tip--top-left { top: 116px; }
+#dxf-fab-tip.dxf-fab-tip--hide { opacity: 0; transition: opacity .4s; }
+@keyframes dxf-fab-tip-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------------------------------------------------------------------------
+   Screenshot annotator
+--------------------------------------------------------------------------- */
+.dxf-annot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--rv-border-hi, rgba(255,255,255,.15));
+  border-radius: var(--rv-radius, 6px);
+  color: var(--rv-text-muted, #6e7f91);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all .12s;
+}
+.dxf-annot-btn:hover { border-color: var(--rv-accent, #ff8d27); color: var(--rv-accent, #ff8d27); }
+
+#dxf-annotator {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483645;
+  background: rgba(0,0,0,.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3vh 3vw;
+}
+.dxf-annot-inner {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  max-height: 100%;
+  gap: 10px;
+}
+.dxf-annot-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #fff;
+  font-size: 14px;
+}
+.dxf-annot-tools { display: flex; gap: 6px; }
+.dxf-annot-stage {
+  overflow: auto;
+  background: #111;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dxf-annot-canvas,
+body.dxf-comment-mode .dxf-annot-canvas {
+  max-width: 100%;
+  max-height: calc(94vh - 60px);
+  /* Pen-tip cursor — the annotate stage is a freehand draw surface, not a
+     click-to-pin canvas. Hotspot at the pen nib (bottom-left, 2 24).
+     `!important` is required to beat the universal `body.dxf-comment-mode *`
+     comment-cursor rule that's still active while the annotator overlay is open. */
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%20viewBox='0%200%2028%2028'%3E%3Cpath%20d='M19%202%20l7%207%20-13%2013%20-7%200%200%20-7%20z'%20fill='%23ff3b30'%20stroke='%23ffffff'%20stroke-width='1.5'%20stroke-linejoin='round'/%3E%3Cpath%20d='M16%205%20l7%207'%20stroke='%23ffffff'%20stroke-width='1.5'%20stroke-linecap='round'/%3E%3Cpath%20d='M6%2022%20l3%203'%20stroke='%23ffffff'%20stroke-width='1.5'%20stroke-linecap='round'/%3E%3C/svg%3E") 2 24, crosshair !important;
+  display: block;
+  touch-action: none;
+}
+
+/* ---------------------------------------------------------------------------
+   White-label brand logo in the sidebar header (Pro)
+
+   Both variants render side-by-side; CSS hides whichever doesn't match the
+   active data-rv-theme. This means the swap is instant on theme toggle
+   without any JS coupling. When only one variant is uploaded, the host
+   still passes the same URL for both — visually identical but no double-
+   render flicker because only one is ever visible.
+--------------------------------------------------------------------------- */
+.dxf-brand-logo {
+  display: block;
+  max-height: 30px;
+  max-width: 160px;
+  width: auto;
+  object-fit: contain;
+}
+[data-rv-theme="dark"]  .dxf-brand-logo--light,
+[data-rv-theme="light"] .dxf-brand-logo--dark { display: none; }
+/* OS-prefers-light with no explicit override → hide the dark-bg variant. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-rv-theme="dark"]) .dxf-brand-logo--dark { display: none; }
+}
+/* OS-prefers-dark or unset → hide the light-bg variant. */
+@media (prefers-color-scheme: dark), (prefers-color-scheme: no-preference) {
+  :root:not([data-rv-theme="light"]) .dxf-brand-logo--light { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Static Review-name label for reviewers (caps.canPickReview === false).
+   Matches the visual rhythm of the dropdown pills next to it (device filter)
+   without the chevron / clickable affordance.
+--------------------------------------------------------------------------- */
+.dxf-review-label {
+  display: inline-block;
+  box-sizing: border-box;
+  vertical-align: middle;
+  height: 28px;
+  /* 28px box − 2×1px border = 26px content height → centres the text */
+  line-height: 26px;
+  padding: 0 10px;
+  /* Cap the width so a long Review name can't stretch the bar; adapts on
+     narrow viewports. Full name stays available via the title tooltip. */
+  max-width: clamp(120px, 30vw, 240px);
+  border-radius: 999px;
+  background: var(--rv-surface-hi, rgba(255,255,255,.06));
+  border: 1px solid var(--rv-border, rgba(255,255,255,.08));
+  color: var(--rv-text-sub, #aab2bc);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Review switcher — same pill look, but a real <select> for viewers who can
+   reach more than one review (logged-in admins, or email reviewers on several). */
+/* Match the built-in .dxf-dropdown pill next to it (the device filter):
+   rounded rect (not a full pill), same surface/border/typography, custom
+   chevron so the native select arrow doesn't double up. */
+.dxf-review-switch {
+  box-sizing: border-box;
+  vertical-align: middle;
+  max-width: clamp(140px, 32vw, 240px);
+  padding: 5px 26px 5px 10px;
+  border-radius: 7px;
+  background: var(--rv-surface, rgba(255,255,255,.04));
+  border: 1px solid var(--rv-border, rgba(255,255,255,.08));
+  color: var(--rv-text-sub, #aab2bc);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aab2bc' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color .12s, color .12s;
+}
+.dxf-review-switch:hover { color: var(--rv-text, #e3e6ea); border-color: var(--rv-border-hi, rgba(255,255,255,.16)); }
+.dxf-review-switch:focus { outline: none; border-color: var(--rv-border-hi, rgba(255,255,255,.16)); }
+.dxf-review-switch option { color: initial; }
+
+/* ---------------------------------------------------------------------------
+   Sidebar header icon buttons (theme toggle + close)
+   The SVG glyphs in engine.js ICONS.{sun,moon,close} ship without intrinsic
+   width/height — they need CSS sizing. builder.css has this rule for the
+   in-builder context; the front-end was missing it, so the SVGs rendered at
+   the browser default size (huge → clipped by the 28px button) and the user
+   saw "no icon" until first paint. Mirror the builder styling here.
+--------------------------------------------------------------------------- */
+#dxf-sidebar .dxf-theme-toggle,
+#dxf-sidebar .dxf-sidebar-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: var(--rv-surface, transparent);
+  color: var(--rv-text-muted, #888);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s, color .12s;
+  padding: 0;
+}
+#dxf-sidebar .dxf-theme-toggle svg,
+#dxf-sidebar .dxf-sidebar-close svg { width: 14px; height: 14px; display: block; }
+#dxf-sidebar .dxf-theme-toggle:hover,
+#dxf-sidebar .dxf-sidebar-close:hover {
+  background: var(--rv-surface-hi, rgba(255,255,255,0.08));
+  color: var(--rv-text, #fff);
+}
+
+/* ---------------------------------------------------------------------------
+   Sidebar body — flex scroll container holding the list OR the identity gate
+--------------------------------------------------------------------------- */
+.dxf-sidebar-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The shared .dxf-comment-list (flex:1 + scroll, from builder.css) fills it. */
+
+/* ---------------------------------------------------------------------------
+   Identity gate
+--------------------------------------------------------------------------- */
+.dxf-identity {
+  padding: 16px 16px 20px;
+  overflow-y: auto;
+}
+
+.dxf-identity-intro {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--rv-text, #dde1e5);
+  margin: 0 0 14px;
+}
+.dxf-identity-intro strong { color: var(--rv-text, #fff); }
+
+.dxf-identity-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rv-text-muted, #6e7f91);
+  margin: 0 0 4px;
+}
+.dxf-identity-optional {
+  font-weight: 400;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.dxf-identity-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: var(--rv-surface, #1e252e);
+  border: 1px solid var(--rv-border-hi, rgba(255,255,255,.15));
+  border-radius: var(--rv-radius, 6px);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: inherit;
+  color: var(--rv-text, #dde1e5);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.dxf-identity-input::placeholder { color: var(--rv-text-muted, #6e7f91); }
+.dxf-identity-input:focus {
+  border-color: var(--rv-accent, #ff8d27);
+  box-shadow: 0 0 0 2px var(--rv-accent-bg, rgba(255, 141, 39, .18));
+}
+
+.dxf-identity-error {
+  min-height: 16px;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--rv-danger, #e05252);
+}
+
+/* Back + Save row used by the change-name flow. */
+.dxf-identity-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Footer — identity strip + "Mark page as approved"
+--------------------------------------------------------------------------- */
+.dxf-sidebar-footer {
+  flex-shrink: 0;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--rv-border, rgba(255,255,255,.08));
+  background: var(--rv-surface, #1e252e);
+  border-radius: 0 0 10px 10px;
+}
+.dxf-sidebar-footer:empty { display: none; }
+
+.dxf-identity-strip {
+  font-size: 11px;
+  color: var(--rv-text-muted, #6e7f91);
+  margin-bottom: 8px;
+}
+.dxf-identity-strip strong { color: var(--rv-text, #dde1e5); }
+
+.dxf-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--rv-accent, #ff8d27);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dxf-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+.dxf-approved-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--rv-radius, 6px);
+  background: rgba(63, 191, 110, .12);
+  border: 1px solid rgba(63, 191, 110, .35);
+  color: var(--rv-success, #3fbf6e);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dxf-approved-state svg { width: 15px; height: 15px; }
+
+/* Empty-state shown in the comment list when the page is approved — replaces
+   the comment cards so reviewers can't accidentally try to add new feedback. */
+.dxf-approved-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 22px;
+  gap: 6px;
+  color: var(--rv-text, #dde1e5);
+}
+.dxf-approved-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(63, 191, 110, .14);
+  color: var(--rv-success, #3fbf6e);
+  margin-bottom: 6px;
+}
+.dxf-approved-empty-icon svg { width: 22px; height: 22px; }
+.dxf-approved-empty-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.dxf-approved-empty-body {
+  margin: 0;
+  max-width: 280px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--rv-text-muted, #6e7f91);
+}
+
+/* Hint shown above a disabled "Mark page as approved" button when there are
+   still open comments — explains why the button is locked. The .is-flash
+   modifier (added by engine.js on click of the soft-disabled button) briefly
+   highlights the message so the reviewer connects the dots. */
+.dxf-approve-blocked {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--rv-text-muted, #6e7f91);
+  text-align: center;
+  border-radius: 6px;
+  background: transparent;
+  transition: background .2s ease, color .2s ease;
+}
+.dxf-approve-blocked.is-flash {
+  animation: dxfApproveBlockedFlash 1.4s ease;
+}
+@keyframes dxfApproveBlockedFlash {
+  0%   { background: rgba(248, 113, 113, 0.28); color: #fecaca; }
+  40%  { background: rgba(248, 113, 113, 0.18); color: #fecaca; }
+  100% { background: transparent;                color: var(--rv-text-muted, #6e7f91); }
+}
+
+/* ---------------------------------------------------------------------------
+   Delete-own-comment button (sits beside the resolve button)
+--------------------------------------------------------------------------- */
+.dxf-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 4px;
+  background: none;
+  border: 1px solid var(--rv-border-hi, rgba(255,255,255,.15));
+  border-radius: 4px;
+  color: var(--rv-text-muted, #6e7f91);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all .12s;
+}
+.dxf-delete-btn svg { width: 14px; height: 14px; }
+.dxf-delete-btn:hover {
+  background: var(--rv-danger, #e05252);
+  border-color: var(--rv-danger, #e05252);
+  color: #fff;
+}
+
+/* Edit-own-comment button (sits beside resolve/delete) + inline editor */
+.dxf-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 4px;
+  background: none;
+  border: 1px solid var(--rv-border-hi, rgba(255,255,255,.15));
+  border-radius: 4px;
+  color: var(--rv-text-muted, #6e7f91);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all .12s;
+}
+.dxf-edit-btn svg { width: 14px; height: 14px; }
+.dxf-edit-btn:hover {
+  background: var(--rv-accent, #ff8d27);
+  border-color: var(--rv-accent, #ff8d27);
+  color: var(--rv-accent-text, #fff);
+}
+.dxf-edit-form { margin: 6px 0 2px; }
+.dxf-edit-text {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 60px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--rv-text, #e7eef6);
+  background: var(--rv-surface-hi, rgba(255,255,255,.04));
+  border: 1px solid var(--rv-border-hi, rgba(255,255,255,.18));
+  border-radius: 6px;
+}
+.dxf-edit-text:focus { outline: none; border-color: var(--rv-accent, #ff8d27); }
+.dxf-edit-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+
+/* ---------------------------------------------------------------------------
+   Approval confirmation (authority check + recording notice)
+--------------------------------------------------------------------------- */
+.dxf-approve-confirm {
+  border: 1px solid var(--rv-border-hi, rgba(255,255,255,.15));
+  border-radius: var(--rv-radius, 6px);
+  padding: 10px 12px;
+  background: var(--rv-surface, #20262e);
+}
+.dxf-approve-auth {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--rv-text, #e8eef4);
+  cursor: pointer;
+  line-height: 1.4;
+}
+.dxf-approve-auth input { margin-top: 2px; flex-shrink: 0; }
+.dxf-approve-note {
+  margin: 8px 0 10px;
+  font-size: 11px;
+  color: var(--rv-text-muted, #6e7f91);
+  line-height: 1.4;
+}
+.dxf-approve-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ---------------------------------------------------------------------------
+   Identity-gate "note" line — explains the email is from the invite
+--------------------------------------------------------------------------- */
+.dxf-identity-note {
+  margin: -8px 0 12px;
+  font-size: 12px;
+  color: var(--rv-text-muted, #94a3b8);
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------------------
+   Pages-nav panel (bottom-left)
+
+   Always-on floating panel rendered by review.js renderPagesNav() whenever
+   cfg.review.pages is populated. Works in both full-overlay mode and the
+   chrome-only off-scope mode (engine deliberately not booted there).
+
+   - Z-index sits below #dxf-comment-form (2147483620) so the in-page
+     comment form floats above it when both are open.
+   - Collapsed state collapses to a header pill; localStorage-persisted so
+     the reviewer's preference survives navigation.
+   - Palette follows `data-rv-theme` on the document element so the panel
+     stays consistent with the comment modal when the reviewer toggles
+     dark / light. Tokens default to dark; the light overrides live in the
+     [data-rv-theme="light"] / OS-prefers-light blocks below.
+--------------------------------------------------------------------------- */
+.rv-nav {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  width: 280px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--rv-modal, #1e252e);
+  border: 1px solid var(--rv-border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  box-shadow: var(--rv-shadow-modal, 0 8px 32px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25));
+  font-family: var(--rv-font-stack, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif);
+  font-size: 13px;
+  color: var(--rv-text, #e8eaf5);
+  z-index: 2147483615;
+  overflow: hidden;
+  transition: max-height .18s ease;
+}
+.rv-nav.is-collapsed { max-height: 44px; }
+
+.rv-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 12px 14px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.rv-nav-header:hover { background: var(--rv-surface-hi, rgba(255,255,255,0.06)); }
+.rv-nav-header-title {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600;
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rv-nav-count {
+  background: var(--rv-surface-hi, rgba(255,255,255,0.10));
+  color: var(--rv-text-sub, #aab2bc);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.rv-nav-chev {
+  color: var(--rv-text-muted, #6e7f91);
+  transition: transform .18s ease;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.rv-nav.is-collapsed .rv-nav-chev { transform: rotate(-90deg); }
+
+.rv-nav-body {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--rv-border, rgba(255,255,255,0.06));
+  overflow: hidden;
+}
+.rv-nav-list {
+  overflow-y: auto;
+  max-height: 320px;
+  padding: 4px 0;
+}
+.rv-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  text-decoration: none !important;
+  color: var(--rv-text, #e8eaf5) !important;
+  transition: background .12s ease;
+}
+.rv-nav-row:hover { background: var(--rv-surface-hi, rgba(255,255,255,0.06)); }
+.rv-nav-row.is-current {
+  background: var(--rv-accent-bg, rgba(255,141,39,0.18));
+  color: var(--rv-accent, #ff8d27) !important;
+  font-weight: 600;
+}
+.rv-nav-title {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px;
+}
+.rv-nav-badge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--rv-surface-hi, rgba(255,255,255,0.08));
+  color: var(--rv-text-muted, #6e7f91);
+}
+.rv-nav-badge.is-active {
+  background: var(--rv-accent-bg, rgba(255,141,39,0.18));
+  color: var(--rv-accent, #ff8d27);
+}
+.rv-nav-badge.is-done {
+  background: var(--rv-teal-bg, rgba(63,191,110,0.15));
+  color: var(--rv-teal, #3fbf6e);
+}
+
+.rv-nav-dashboard {
+  display: block;
+  padding: 10px 14px;
+  border-top: 1px solid var(--rv-border, rgba(255,255,255,0.06));
+  text-align: center;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--rv-accent, #ff8d27) !important;
+  text-decoration: none !important;
+  background: var(--rv-accent-bg, rgba(255,141,39,0.10));
+}
+.rv-nav-dashboard:hover {
+  background: var(--rv-surface-hi, rgba(255,141,39,0.18));
+}
+
+/* ---------------------------------------------------------------------------
+   Phone layout: keep pages-nav from overlapping the Feedback FAB.
+   The FAB lives bottom-right (24/24); the pages-nav defaults to bottom-left
+   with a fixed 280px width. On phones ~360px wide that puts the panel's
+   right edge right under the FAB and the two cover each other. Lift the
+   nav above the FAB and shrink to fit small screens; review.js also
+   default-collapses on this breakpoint so it doesn't fill the screen.
+--------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .rv-nav {
+    bottom: 88px; /* clear the FAB (24 + button height + breathing room) */
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: calc(100vh - 120px);
+  }
+  .rv-nav-list { max-height: 240px; }
+  /* Comment form: full-width-ish on phones so the action buttons stay
+     reachable and the form can't drift past the right edge. */
+  #dxf-comment-form {
+    left: 12px !important;
+    right: 12px;
+    width: auto !important;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Off-scope banner (top of page when reviewer wanders off-scope)
+--------------------------------------------------------------------------- */
+.rv-off-scope {
+  position: sticky;
+  top: 0;
+  z-index: 2147483614;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: #fef3c7;
+  color: #78350f;
+  border-bottom: 1px solid #fbbf24;
+  padding: 10px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: center;
+}
+.rv-off-scope-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.rv-off-scope-back {
+  color: #78350f !important;
+  text-decoration: underline !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rv-off-scope-back:hover { color: #451a03 !important; }
+.rv-off-scope-exit {
+  background: transparent;
+  border: 1px solid #b45309;
+  color: #78350f;
+  font: inherit;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.12s, color 0.12s;
+}
+.rv-off-scope-exit:hover {
+  background: #b45309;
+  color: #fffbeb;
+}
+.rv-off-scope-exit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ---------------------------------------------------------------------------
+   Viewport emulation (iframe-based)
+
+   When the reviewer picks tablet/mobile in the sidebar viewport switcher,
+   review.js mounts a same-origin <iframe> sized to the simulated width.
+   The iframe loads the same URL with ?dxf_no_chrome=1 so PHP skips the
+   overlay enqueue — the page renders bare inside it.
+
+   The parent html/body get a "stage" treatment: locked to viewport, dark
+   surface behind the iframe, original page content hidden so it doesn't
+   bleed through. Our overlay UI (FAB, sidebar, pages-nav, comment form,
+   lightbox, annotator) stays on the parent body and floats above the
+   iframe via the high z-indexes already set further up this file.
+--------------------------------------------------------------------------- */
+html.dxf-vp-emulating,
+html.dxf-vp-emulating body {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* Hide the original page content while the iframe is the canvas. Whitelist
+   the engine's body-level overlay elements (pin-layer lives inside the
+   iframe, so it's not in this list — its parent-doc copy is removed in JS
+   when emulation starts). The popover is engine-managed and only exists
+   while a dropdown is open; without it whitelisted the device/round/round
+   pills appear to do nothing because the menu is hidden under the iframe.
+   `display: none` collapses them out of layout entirely. */
+html.dxf-vp-emulating body > *:not(#dxf-vp-wrapper):not(#dxf-fab):not(#dxf-sidebar):not(#dxf-comment-form):not(#dxf-pages-nav):not(#dxf-off-scope):not(#dxf-annotator):not(#dxf-lightbox):not(#dxf-popover):not(#dxf-summary):not(#wpadminbar) {
+  display: none !important;
+}
+
+#dxf-vp-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: #2b2f36;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 32px 32px 24px;
+  box-sizing: border-box;
+}
+#dxf-vp-iframe {
+  display: block;
+  height: 100%;
+  background: #fff;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35), 0 2px 6px rgba(0, 0, 0, .2);
+  transition: width .25s ease;
+}
+
+/* WP admin bar (shown to logged-in editors who happen to be reviewing) is
+   position:fixed on the parent — push our wrapper down so the iframe doesn't
+   sit underneath it. */
+html.dxf-vp-emulating body.admin-bar #dxf-vp-wrapper {
+  padding-top: calc(32px + var(--wp-admin--admin-bar--height, 32px));
+}

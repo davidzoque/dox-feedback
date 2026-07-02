@@ -1,0 +1,786 @@
+/**
+ * Dox Feedback — unified admin-bar popout styles (Dox Studio brand).
+ *
+ * The popout lives inside the WP admin bar's stock dropdown shell. We override
+ * just enough of the shell to remove default padding/borders so the popout
+ * renders as one continuous WHITE panel matching the Dox Studio brand
+ * (white surface + orange accent), consistent with Dox Functions / Sales Booster.
+ *
+ * All selectors live under #wpadminbar to beat the WP reset rule
+ * "#wpadminbar *" (specificity 1,0,0).
+ */
+
+/* ---------------------------------------------------------------------------
+   Tokens — Dox Studio light theme (white + orange #ff8d27)
+--------------------------------------------------------------------------- */
+:root {
+    --rqr-bg:        #ffffff;
+    --rqr-surface:   #f6f7f9;
+    --rqr-surface2:  #eef0f3;
+    --rqr-border:    #ececec;
+    --rqr-border-hi: #dcdfe4;
+    --rqr-text:      #1c1c1c;
+    --rqr-text-sub:  #50575e;
+    --rqr-text-mut:  #7a7a7a;
+    --rqr-accent:    #ff8d27;
+    --rqr-accent-dk: #e57514;
+    --rqr-accent-bg: #fff4e8;
+    --rqr-accent-tx: #c25e00;
+    --rqr-green:     #16a34a;
+    --rqr-green-bg:  #e8f7ee;
+    --rqr-green-tx:  #1e7d3a;
+    --rqr-danger:    #d63638;
+    --rqr-danger-bg: #fdecea;
+    --rqr-danger-bd: #f3b9b6;
+}
+
+/* ---------------------------------------------------------------------------
+   Admin-bar shell overrides — strip default padding from the WP dropdown so
+   our popout fills it edge-to-edge. The "dxf-ab-quick-item" node is the
+   only direct child of the dropdown.
+--------------------------------------------------------------------------- */
+#wpadminbar #wp-admin-bar-dxf > .ab-sub-wrapper {
+    background: var(--rqr-bg) !important;
+    min-width: 340px !important;
+    border-radius: 0 0 10px 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 16px 48px rgba(20,19,19,0.22), 0 0 0 1px rgba(20,19,19,0.08) !important;
+}
+
+#wpadminbar #wp-admin-bar-dxf > .ab-sub-wrapper > .ab-submenu {
+    padding: 0 !important;
+}
+
+#wpadminbar #wp-admin-bar-dxf-ab-quick {
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#wpadminbar #wp-admin-bar-dxf-ab-quick > .ab-item {
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: default !important;
+    background: transparent !important;
+}
+
+#wpadminbar #wp-admin-bar-dxf-ab-quick > .ab-item:hover,
+#wpadminbar #wp-admin-bar-dxf-ab-quick > .ab-item:focus {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Popout layout
+--------------------------------------------------------------------------- */
+#wpadminbar .dxf-ab-quick-inner {
+    width: 340px;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    color: var(--rqr-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif !important;
+}
+
+#wpadminbar .rqr-popout {
+    background: var(--rqr-bg);
+    color: var(--rqr-text);
+}
+
+#wpadminbar .rqr-divider {
+    height: 1px;
+    background: var(--rqr-border);
+}
+
+#wpadminbar .rqr-section-label {
+    padding: 10px 16px 5px;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--rqr-text-mut) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Link section
+--------------------------------------------------------------------------- */
+#wpadminbar .rqr-link-pad {
+    padding: 14px 16px 16px;
+}
+
+#wpadminbar .rqr-link-status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 12px;
+    font-size: 12px !important;
+    color: var(--rqr-text-mut);
+}
+#wpadminbar .rqr-link-status.rqr-link-active {
+    color: var(--rqr-green-tx) !important;
+    font-weight: 600 !important;
+}
+#wpadminbar .rqr-link-empty .rqr-link-status {
+    font-style: italic;
+}
+
+#wpadminbar .rqr-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+#wpadminbar .rqr-dot-mute   { background: var(--rqr-text-mut); }
+#wpadminbar .rqr-dot-active {
+    background: var(--rqr-green);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.18);
+    animation: rqrPulse 2.5s ease-in-out infinite;
+}
+@keyframes rqrPulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(22,163,74,0.18); }
+    50%      { box-shadow: 0 0 0 4px rgba(22,163,74,0.08); }
+}
+
+#wpadminbar .rqr-link-url-row {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--rqr-border-hi);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--rqr-surface);
+    margin-bottom: 10px;
+}
+#wpadminbar .rqr-link-url {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 11.5px !important;
+    color: var(--rqr-text-sub) !important;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 20px !important;
+    min-width: 0;
+}
+#wpadminbar .rqr-copy-btn {
+    flex-shrink: 0;
+    padding: 0 13px !important;
+    background: var(--rqr-accent-bg) !important;
+    border: 0 !important;
+    border-left: 1px solid var(--rqr-border-hi) !important;
+    color: var(--rqr-accent-tx) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s, color 0.15s;
+    height: auto !important;
+    line-height: 1 !important;
+}
+#wpadminbar .rqr-copy-btn:hover {
+    background: var(--rqr-accent) !important;
+    color: #fff !important;
+}
+
+#wpadminbar .rqr-link-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#wpadminbar .rqr-link-open {
+    display: flex !important;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--rqr-accent-tx) !important;
+    text-decoration: none !important;
+    transition: color 0.12s;
+}
+#wpadminbar .rqr-link-open:hover {
+    color: var(--rqr-accent-dk) !important;
+}
+
+#wpadminbar .rqr-revoke-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--rqr-danger-bd) !important;
+    background: transparent !important;
+    color: var(--rqr-danger) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    cursor: pointer;
+    line-height: 1 !important;
+    height: auto !important;
+    transition: background 0.12s;
+}
+#wpadminbar .rqr-revoke-btn:hover {
+    background: var(--rqr-danger-bg) !important;
+}
+#wpadminbar .rqr-revoke-btn span {
+    line-height: 1.5;
+}
+
+#wpadminbar .rqr-link-scope {
+    margin-top: 10px;
+    font-size: 11px !important;
+    color: var(--rqr-text-mut) !important;
+    line-height: 1.4 !important;
+}
+
+#wpadminbar .rqr-cta {
+    padding: 9px 14px !important;
+    border-radius: 8px !important;
+    border: 0 !important;
+    background: var(--rqr-accent) !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none !important;
+    line-height: 1 !important;
+    height: auto !important;
+    transition: background 0.15s;
+    text-align: center;
+    white-space: normal;
+    box-shadow: 0 2px 8px rgba(255,141,39,0.30);
+}
+#wpadminbar .rqr-cta span {
+    line-height: 1.5;
+}
+/* Icon sizes are pinned inline by ico() in quick-review.js — the admin bar's
+   default `#wpadminbar svg` selectors otherwise stretch our SVGs to fill
+   the flex container. See the comment on ico() for context. */
+#wpadminbar .rqr-cta:hover {
+    background: var(--rqr-accent-dk) !important;
+    color: #fff !important;
+}
+#wpadminbar .rqr-cta:disabled {
+    background: var(--rqr-accent-bg) !important;
+    color: var(--rqr-accent-tx) !important;
+    box-shadow: none;
+    cursor: default;
+}
+
+#wpadminbar .rqr-cta-upgrade {
+    background: var(--rqr-surface) !important;
+    border: 1px solid var(--rqr-border-hi) !important;
+    color: var(--rqr-accent-tx) !important;
+    box-shadow: none;
+}
+#wpadminbar .rqr-cta-upgrade:hover {
+    background: var(--rqr-surface2) !important;
+    color: var(--rqr-accent-dk) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Quick-review nav rows
+--------------------------------------------------------------------------- */
+#wpadminbar .rqr-navrows {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 5px;
+}
+
+#wpadminbar .rqr-navrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px !important;
+    cursor: pointer;
+    background: transparent !important;
+    border: 0 !important;
+    color: inherit !important;
+    width: 100%;
+    text-align: left !important;
+    transition: background 0.1s;
+    height: auto !important;
+    line-height: 1.3 !important;
+    font-family: inherit !important;
+}
+
+#wpadminbar .rqr-navrow:hover:not(.is-disabled):not(:disabled) {
+    background: var(--rqr-surface) !important;
+}
+
+#wpadminbar .rqr-navrow.is-disabled,
+#wpadminbar .rqr-navrow:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+#wpadminbar .rqr-navrow-icon {
+    width: 32px; height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--rqr-surface);
+    border: 1px solid var(--rqr-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--rqr-text-sub);
+    transition: all 0.12s;
+}
+#wpadminbar .rqr-navrow:hover:not(.is-disabled):not(:disabled) .rqr-navrow-icon {
+    background: var(--rqr-accent-bg);
+    border-color: rgba(255,141,39,0.35);
+    color: var(--rqr-accent-tx);
+}
+
+#wpadminbar .rqr-navrow-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+#wpadminbar .rqr-navrow-label {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--rqr-text-sub) !important;
+    line-height: 1.3 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.1s;
+}
+#wpadminbar .rqr-navrow:hover:not(.is-disabled):not(:disabled) .rqr-navrow-label {
+    color: var(--rqr-text) !important;
+}
+#wpadminbar .rqr-navrow-sub {
+    font-size: 11px !important;
+    color: var(--rqr-text-mut) !important;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#wpadminbar .rqr-navrow-chev {
+    color: var(--rqr-text-mut);
+    transition: color 0.1s;
+}
+#wpadminbar .rqr-navrow:hover:not(.is-disabled):not(:disabled) .rqr-navrow-chev {
+    color: var(--rqr-accent-tx);
+}
+
+/* ---------------------------------------------------------------------------
+   Round info
+--------------------------------------------------------------------------- */
+#wpadminbar .rqr-round-block {
+    padding: 12px 16px;
+}
+#wpadminbar .rqr-round-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+#wpadminbar .rqr-round-title {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: var(--rqr-text) !important;
+}
+#wpadminbar .rqr-new-review {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: var(--rqr-accent-tx) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    line-height: 1 !important;
+    height: auto !important;
+    transition: color 0.12s;
+    font-family: inherit !important;
+}
+#wpadminbar .rqr-new-review:hover {
+    color: var(--rqr-accent-dk) !important;
+}
+
+#wpadminbar .rqr-round-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px !important;
+    color: var(--rqr-text-sub) !important;
+}
+#wpadminbar .rqr-round-meta strong {
+    font-weight: 700 !important;
+    color: var(--rqr-text) !important;
+}
+#wpadminbar .rqr-round-meta-icon {
+    color: var(--rqr-text-mut);
+}
+/* "X open comments" is a link into the builder with the panel open. */
+#wpadminbar .rqr-open-comments {
+    display: inline !important;
+    padding: 0 !important;
+    height: auto !important;
+    line-height: inherit !important;
+    font-size: 12px !important;
+    color: var(--rqr-text-sub) !important;
+    text-decoration: underline dotted !important;
+    text-underline-offset: 3px;
+}
+#wpadminbar .rqr-open-comments:hover,
+#wpadminbar .rqr-open-comments:hover strong {
+    color: var(--rqr-accent-tx) !important;
+}
+
+/* Active-reviews list — appears under the Reviews count line. */
+#wpadminbar ul.rqr-review-list {
+    list-style: none !important;
+    margin: 10px 0 0 !important;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#wpadminbar .rqr-review-item {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px !important;
+    margin: 0 -8px !important;
+    border-radius: 6px;
+    background: transparent;
+    transition: background 0.1s;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
+}
+#wpadminbar .rqr-review-item:hover {
+    background: var(--rqr-surface);
+}
+#wpadminbar .rqr-review-item.is-deleting {
+    opacity: 0.45;
+    pointer-events: none;
+}
+#wpadminbar a.rqr-review-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px !important;
+    color: var(--rqr-text) !important;
+    text-decoration: none !important;
+    line-height: 1.3 !important;
+    height: auto !important;
+    padding: 0 !important;
+}
+#wpadminbar a.rqr-review-name:hover,
+#wpadminbar a.rqr-review-name:focus {
+    color: var(--rqr-accent-tx) !important;
+    background: transparent !important;
+}
+/* Scope pills — spell out exactly what a review/link covers, so a single-page
+   link is never mistaken for a whole-site one. Colour escalates with reach:
+   muted (this page) → orange (selected) → amber (whole site = broadest). */
+#wpadminbar .rqr-scope-pill {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 7px;
+    margin: 0 2px;
+    border-radius: 999px;
+    font-size: 10.5px !important;
+    font-weight: 600;
+    line-height: 1 !important;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+#wpadminbar .rqr-scope-single {
+    background: var(--rqr-surface2);
+    color: var(--rqr-text-sub) !important;
+    border: 1px solid var(--rqr-border-hi);
+}
+#wpadminbar .rqr-scope-selected {
+    background: var(--rqr-accent-bg);
+    color: var(--rqr-accent-tx) !important;
+    border: 1px solid rgba(255,141,39,0.32);
+}
+#wpadminbar .rqr-scope-entire {
+    background: rgba(245,158,11,0.15);
+    color: #b45309 !important;
+    border: 1px solid rgba(245,158,11,0.40);
+}
+
+#wpadminbar .rqr-review-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+#wpadminbar a.rqr-review-editscope {
+    font-size: 11.5px !important;
+    color: var(--rqr-text-sub) !important;
+    text-decoration: none !important;
+    line-height: 1 !important;
+    height: auto !important;
+    padding: 0 !important;
+}
+#wpadminbar a.rqr-review-editscope:hover {
+    color: var(--rqr-accent-tx) !important;
+    background: transparent !important;
+}
+
+/* Pro affordance — a secondary button (matching the Generate CTA's shape),
+   sitting just under the link section. Links out to the scoped-review wizard. */
+#wpadminbar a.rqr-pro-create {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: 10px 16px 14px;
+    padding: 9px 14px !important;
+    border: 1px solid var(--rqr-border-hi);
+    border-radius: 8px;
+    background: var(--rqr-surface);
+    color: var(--rqr-accent-tx) !important;
+    font-size: 13px !important;
+    font-weight: 600;
+    line-height: 1 !important;
+    height: auto !important;
+    text-decoration: none !important;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+#wpadminbar a.rqr-pro-create:hover {
+    background: var(--rqr-accent-bg);
+    border-color: var(--rqr-accent);
+    color: var(--rqr-accent-dk) !important;
+}
+#wpadminbar a.rqr-pro-create .rqr-pro-tag {
+    margin-left: 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: var(--rqr-accent);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+/* Row actions are now compact icon buttons: Open (↗) + Edit (✎) + Delete (✕). */
+#wpadminbar a.rqr-review-open,
+#wpadminbar a.rqr-review-manage {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 1px solid transparent !important;
+    border-radius: 5px !important;
+    color: var(--rqr-text-mut) !important;
+    text-decoration: none !important;
+    line-height: 1 !important;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+#wpadminbar a.rqr-review-open:hover,
+#wpadminbar a.rqr-review-open:focus,
+#wpadminbar a.rqr-review-manage:hover,
+#wpadminbar a.rqr-review-manage:focus {
+    color: var(--rqr-accent-tx) !important;
+    background: var(--rqr-surface) !important;
+    border-color: var(--rqr-border-hi) !important;
+}
+#wpadminbar button.rqr-review-delete {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 5px !important;
+    color: var(--rqr-text-mut) !important;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    line-height: 1 !important;
+}
+#wpadminbar button.rqr-review-delete:hover {
+    background: var(--rqr-danger-bg) !important;
+    border-color: var(--rqr-danger-bd) !important;
+    color: var(--rqr-danger) !important;
+}
+#wpadminbar button.rqr-review-delete:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+#wpadminbar a.rqr-review-viewall {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11.5px !important;
+    color: var(--rqr-accent-tx) !important;
+    text-decoration: none !important;
+}
+#wpadminbar a.rqr-review-viewall:hover {
+    color: var(--rqr-accent-dk) !important;
+    background: transparent !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Settings link
+--------------------------------------------------------------------------- */
+#wpadminbar .rqr-settings {
+    display: flex !important;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px !important;
+    text-decoration: none !important;
+    color: var(--rqr-text-mut) !important;
+    font-size: 12px !important;
+    transition: background 0.1s, color 0.1s;
+    height: auto !important;
+    line-height: 1.3 !important;
+}
+#wpadminbar .rqr-settings:hover,
+#wpadminbar .rqr-settings:focus {
+    background: var(--rqr-surface) !important;
+    color: var(--rqr-accent-tx) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Result panel — quick-review created confirmation + error states
+--------------------------------------------------------------------------- */
+#wpadminbar .rqr-result {
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--rqr-border);
+}
+#wpadminbar .rqr-result-ok  { color: var(--rqr-green-tx) !important; font-size: 12px !important; margin-bottom: 6px; }
+#wpadminbar .rqr-result-err { color: var(--rqr-danger) !important;   font-size: 12px !important; margin-bottom: 6px; }
+
+#wpadminbar .rqr-share {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+    align-items: center;
+}
+#wpadminbar .rqr-share-url {
+    background: var(--rqr-surface) !important;
+    border: 1px solid var(--rqr-border-hi) !important;
+    color: var(--rqr-text) !important;
+    padding: 5px 8px !important;
+    border-radius: 4px !important;
+    font-size: 11.5px !important;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important;
+    width: 100%;
+    min-width: 0;
+    line-height: 18px !important;
+    height: auto !important;
+}
+#wpadminbar .rqr-share-copy {
+    background: var(--rqr-accent-bg) !important;
+    border: 1px solid var(--rqr-border-hi) !important;
+    color: var(--rqr-accent-tx) !important;
+    padding: 5px 9px !important;
+    border-radius: 4px !important;
+    cursor: pointer;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    height: auto !important;
+}
+#wpadminbar .rqr-share-copy:hover {
+    background: var(--rqr-accent) !important;
+    color: #fff !important;
+}
+#wpadminbar .rqr-share-manage {
+    color: var(--rqr-accent-tx) !important;
+    text-decoration: none !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+}
+#wpadminbar .rqr-share-manage:hover { text-decoration: underline !important; }
+
+/* ---------------------------------------------------------------------------
+   Admin-bar root badge (open-comment count)
+--------------------------------------------------------------------------- */
+#wpadminbar .dxf-ab-badge {
+    display: inline-block;
+    background: var(--rqr-accent);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    line-height: 14px !important;
+    min-width: 14px;
+    padding: 0 5px !important;
+    text-align: center;
+    vertical-align: 0;
+    margin-left: 4px;
+    box-shadow: 0 0 0 1px rgba(255,141,39,0.35);
+}
+
+/* First-visit admin-bar coachmark — points up at the Dox Feedback admin-bar
+   button when the user arrives from Getting Started (?dxf-welcome=1). Position
+   (top/left) is set inline by quick-review.js; the arrow sits on top, offset by
+   the --rv-ab-arrow custom property. White card with orange accent to match
+   the Dox Studio brand. */
+#dxf-ab-tip {
+    position: fixed;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 270px;
+    padding: 11px 13px;
+    background: #ffffff;
+    color: #1c1c1c;
+    border: 1px solid #ececec;
+    border-top: 3px solid #ff8d27;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(20,19,19,0.22);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    z-index: 99990; /* below the admin bar's own popout (100000), above content */
+    animation: dxf-ab-tip-in .25s ease-out;
+}
+#dxf-ab-tip::after {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: var(--rv-ab-arrow, 22px);
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border: 1px solid #ececec;
+    border-bottom: none;
+    border-right: none;
+    transform: rotate(45deg);
+}
+#dxf-ab-tip .dxf-ab-tip-msg { flex: 1 1 auto; }
+#dxf-ab-tip .dxf-ab-tip-close {
+    flex: none;
+    margin: -3px -4px 0 0;
+    padding: 0 4px;
+    background: transparent;
+    border: none;
+    color: rgba(28, 28, 28, .45);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+}
+#dxf-ab-tip .dxf-ab-tip-close:hover { color: #1c1c1c; }
+#dxf-ab-tip.dxf-ab-tip--hide { opacity: 0; transition: opacity .2s; }
+@keyframes dxf-ab-tip-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
