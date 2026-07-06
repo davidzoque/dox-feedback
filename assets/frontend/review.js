@@ -18,6 +18,17 @@
   var cfg = window.dxfReview;
   if (!cfg) return;
 
+  // ---------------------------------------------------------------------------
+  // i18n helper — translations come from PHP via cfg.i18n. t(key, fallback)
+  // returns the translated string when present, else the original English
+  // fallback (so behaviour is unchanged when no translation is supplied).
+  // ---------------------------------------------------------------------------
+  var I18N = (cfg && cfg.i18n) || {};
+  function t(k, fb) {
+    var v = I18N[k];
+    return (v === undefined || v === null || v === '') ? fb : v;
+  }
+
   var ACCENT = (cfg.accent && /^#[0-9a-fA-F]{3,6}$/.test(cfg.accent)) ? cfg.accent : '#ff8d27';
 
   // Two-mode boot:
@@ -279,18 +290,17 @@
     // Pointless once the sidebar is already open (e.g. filter-forced open).
     var sb = document.getElementById('dxf-sidebar');
     if (sb && sb.classList.contains('dxf-sidebar--open')) return;
-    var i18n = cfg.i18n || {};
     var tip = document.createElement('div');
     tip.id = 'dxf-fab-tip';
     tip.className = 'dxf-fab-tip--' + mountedFabPos;
     tip.setAttribute('role', 'status');
     var msg = document.createElement('span');
     msg.className = 'dxf-fab-tip-msg';
-    msg.textContent = i18n.fabTip || 'Click the Feedback button to pin comments anywhere on this page.';
+    msg.textContent = t('fabTip', 'Click the Feedback button to pin comments anywhere on this page.');
     var close = document.createElement('button');
     close.type = 'button';
     close.className = 'dxf-fab-tip-close';
-    close.setAttribute('aria-label', i18n.fabTipClose || 'Dismiss');
+    close.setAttribute('aria-label', t('fabTipClose', 'Dismiss'));
     close.innerHTML = '&times;';
     // Explicit dismissal counts as "got it" — never show again.
     close.addEventListener('click', setFabTipDone);
@@ -319,8 +329,9 @@
     if (['bottom-right', 'bottom-left', 'top-right', 'top-left'].indexOf(fabPos) === -1) fabPos = 'bottom-right';
     mountedFabPos = fabPos;
     fab.className = 'dxf-fab--' + fabPos;
-    fab.setAttribute('aria-label', 'Feedback');
-    fab.innerHTML = opts.ICONS.comment + '<span>Feedback</span>';
+    var fabLabel = t('fab', 'Feedback');
+    fab.setAttribute('aria-label', fabLabel);
+    fab.innerHTML = opts.ICONS.comment + '<span>' + escHtml(fabLabel) + '</span>';
     fab.addEventListener('click', function () {
       // FAB click counts as an explicit "open" — clear the dismissed flag.
       setSidebarDismissed(false);
@@ -383,13 +394,13 @@
     if (isChangingName) {
       body.innerHTML =
         '<div class="dxf-identity">' +
-          '<label class="dxf-identity-label">Your name</label>' +
+          '<label class="dxf-identity-label">' + escHtml(t('identity.name', 'Your name')) + '</label>' +
           '<input type="text" class="dxf-identity-input" id="dxf-id-name" ' +
-            'value="' + escAttr(nameVal) + '" placeholder="Jane Smith" autocomplete="name">' +
+            'value="' + escAttr(nameVal) + '" placeholder="' + escAttr(t('identity.namePlaceholder', 'Jane Smith')) + '" autocomplete="name">' +
           '<p class="dxf-identity-error" id="dxf-id-error"></p>' +
           '<div class="dxf-identity-actions">' +
-            '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">Back</button>' +
-            '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">Save</button>' +
+            '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">' + escHtml(t('identity.back', 'Back')) + '</button>' +
+            '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + escHtml(t('identity.save', 'Save')) + '</button>' +
           '</div>' +
         '</div>';
 
@@ -399,7 +410,7 @@
       var changeSubmit = function () {
         var name = changeNameInput.value.trim();
         var err  = body.querySelector('#dxf-id-error');
-        if (!name) { err.textContent = 'Please enter your name.'; return; }
+        if (!name) { err.textContent = t('identity.enterName', 'Please enter your name.'); return; }
         // Save name; preserve existing email.
         guest.save(name, emailVal);
         onSuccess();
@@ -423,30 +434,32 @@
     // reviews we never contact the reviewer at the address they enter —
     // it's only shown alongside their name in the site owner's notification
     // emails — so we don't gate on it.
-    var emailReadonly = hasInvite ? ' readonly title="From your invitation"' : '';
+    var emailReadonly = hasInvite ? ' readonly title="' + escAttr(t('identity.fromInvitation', 'From your invitation')) + '"' : '';
     var emailLabel    = hasInvite
-      ? 'Your email'
-      : 'Your email <span class="dxf-identity-optional">(optional)</span>';
+      ? escHtml(t('identity.email', 'Your email'))
+      : escHtml(t('identity.email', 'Your email')) + ' <span class="dxf-identity-optional">' + escHtml(t('identity.optional', '(optional)')) + '</span>';
     var emailNote     = hasInvite
-      ? '<p class="dxf-identity-note">We\'ll send replies to this address — it\'s the one your invite was sent to.</p>'
+      ? '<p class="dxf-identity-note">' + escHtml(t('identity.emailNote', "We'll send replies to this address — it's the one your invite was sent to.")) + '</p>'
       : '';
     var intro = hasInvite
       ? ''
-      : '<p class="dxf-identity-intro">Before leaving feedback on <strong>' + escHtml(cfg.pageTitle) + '</strong>, tell us who you are.</p>';
+      : '<p class="dxf-identity-intro">' + t('identity.intro', 'Before leaving feedback on %s, tell us who you are.').replace('%s', '<strong>' + escHtml(cfg.pageTitle) + '</strong>') + '</p>';
 
     body.innerHTML =
       '<div class="dxf-identity">' +
         intro +
-        '<label class="dxf-identity-label">Your name</label>' +
+        '<label class="dxf-identity-label">' + escHtml(t('identity.name', 'Your name')) + '</label>' +
         '<input type="text" class="dxf-identity-input" id="dxf-id-name" ' +
-          'value="' + escAttr(nameVal) + '" placeholder="Jane Smith" autocomplete="name">' +
+          'value="' + escAttr(nameVal) + '" placeholder="' + escAttr(t('identity.namePlaceholder', 'Jane Smith')) + '" autocomplete="name">' +
         '<label class="dxf-identity-label">' + emailLabel + '</label>' +
         '<input type="email" class="dxf-identity-input" id="dxf-id-email" ' +
-          'value="' + escAttr(emailVal) + '" placeholder="jane@example.com" autocomplete="email"' + emailReadonly + '>' +
+          'value="' + escAttr(emailVal) + '" placeholder="' + escAttr(t('identity.emailPlaceholder', 'jane@example.com')) + '" autocomplete="email"' + emailReadonly + '>' +
         emailNote +
         '<p class="dxf-identity-error" id="dxf-id-error"></p>' +
         '<button type="button" class="dxf-btn dxf-btn-primary dxf-btn-full" id="dxf-id-submit">' +
-          (hasInvite ? 'Continue as ' + (escHtml(nameVal) || 'this reviewer') : 'Continue') +
+          (hasInvite
+            ? escHtml(t('identity.continueAsName', 'Continue as %s').replace('%s', nameVal || t('identity.thisReviewer', 'this reviewer')))
+            : escHtml(t('identity.continue', 'Continue'))) +
         '</button>' +
       '</div>';
 
@@ -456,7 +469,8 @@
       // Live-update the CTA so it always reflects the editable name.
       nameInput.addEventListener('input', function () {
         var n = nameInput.value.trim();
-        btn.textContent = 'Continue as ' + (n || 'this reviewer');
+        btn.textContent = t('identity.continueAsName', 'Continue as %s')
+          .replace('%s', n || t('identity.thisReviewer', 'this reviewer'));
       });
     }
 
@@ -464,12 +478,12 @@
       var name  = nameInput.value.trim();
       var email = body.querySelector('#dxf-id-email').value.trim();
       var err   = body.querySelector('#dxf-id-error');
-      if (!name) { err.textContent = 'Please enter your name.'; return; }
+      if (!name) { err.textContent = t('identity.enterName', 'Please enter your name.'); return; }
       // Email is optional. If they did type something, it needs to look like
       // an email — empty is fine, a typo'd address is not (it'd render
       // garbage in the site owner's notification email).
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        err.textContent = 'Please enter a valid email address, or leave it blank.';
+        err.textContent = t('identity.invalidEmail', 'Please enter a valid email address, or leave it blank.');
         return;
       }
       guest.save(name, email);
@@ -497,7 +511,7 @@
     var b = cfg.brand || {};
     return {
       accent:       ACCENT,
-      name:         (cfg.agencyName || 'Comments'),
+      name:         (cfg.agencyName || t('brandDefaultName', 'Comments')),
       logo:         (b.enabled && b.logo) ? b.logo : '',
       logoDark:     (b.enabled && b.logoDark)  ? b.logoDark  : ((b.enabled && b.logo) ? b.logo : ''),
       logoLight:    (b.enabled && b.logoLight) ? b.logoLight : ((b.enabled && b.logo) ? b.logo : ''),
@@ -521,10 +535,9 @@
   var NAV_KEY = 'dxf_nav_collapsed';
 
   function pagesNavBadge(status) {
-    var i18n = (cfg.i18n || {});
-    if (status === 'approved')  return '<span class="rv-nav-badge is-done">' + escHtml(i18n.statusDone   || 'Approved') + '</span>';
-    if (status === 'in_review') return '<span class="rv-nav-badge is-active">' + escHtml(i18n.statusReview || 'In review') + '</span>';
-    return '<span class="rv-nav-badge is-todo">' + escHtml(i18n.statusTodo || 'To do') + '</span>';
+    if (status === 'approved')  return '<span class="rv-nav-badge is-done">' + escHtml(t('statusDone', 'Approved')) + '</span>';
+    if (status === 'in_review') return '<span class="rv-nav-badge is-active">' + escHtml(t('statusReview', 'In review')) + '</span>';
+    return '<span class="rv-nav-badge is-todo">' + escHtml(t('statusTodo', 'To do')) + '</span>';
   }
 
   function renderPagesNav() {
@@ -563,11 +576,10 @@
         + '</a>';
     }).join('');
 
-    var i18n = cfg.i18n || {};
     var el = document.createElement('aside');
     el.id = 'dxf-pages-nav';
     el.className = 'rv-nav' + (collapsed ? ' is-collapsed' : '');
-    el.setAttribute('aria-label', i18n.navTitle || 'Pages in this review');
+    el.setAttribute('aria-label', t('navTitle', 'Pages in this review'));
     // Lenis: prevent smooth-scroll libs from hijacking wheel/touch inside the
     // pages-nav. Mirrors what the sidebar already does — without this, when a
     // theme runs Lenis (common on Bricks builds) the inner page list looks
@@ -578,7 +590,7 @@
     el.innerHTML =
       '<button type="button" class="rv-nav-header" aria-expanded="' + (collapsed ? 'false' : 'true') + '">' +
         '<span class="rv-nav-header-title">' +
-          (rv.name ? escHtml(rv.name) : escHtml(i18n.navTitle || 'Pages in this review')) +
+          (rv.name ? escHtml(rv.name) : escHtml(t('navTitle', 'Pages in this review'))) +
           '<span class="rv-nav-count">' + rv.pages.length + '</span>' +
         '</span>' +
         '<span class="rv-nav-chev" aria-hidden="true">' +
@@ -588,7 +600,7 @@
       '<div class="rv-nav-body">' +
         '<div class="rv-nav-list">' + rows + '</div>' +
         (rv.landingUrl
-          ? '<a class="rv-nav-dashboard" href="' + escAttr(rv.landingUrl) + '">' + escHtml(i18n.navAllPages || 'All pages') + ' →</a>'
+          ? '<a class="rv-nav-dashboard" href="' + escAttr(rv.landingUrl) + '">' + escHtml(t('navAllPages', 'All pages')) + ' →</a>'
           : '') +
       '</div>';
 
@@ -607,17 +619,16 @@
     var rv = cfg.review || {};
     if (!rv.slug || !rv.isOffScope) return;
     if (document.getElementById('dxf-off-scope')) return;
-    var i18n = cfg.i18n || {};
     var el = document.createElement('div');
     el.id = 'dxf-off-scope';
     el.className = 'rv-off-scope';
     el.innerHTML =
-      '<span class="rv-off-scope-msg">' + escHtml(i18n.offScopeMsg || 'This page isn\'t part of the review.') + '</span>' +
+      '<span class="rv-off-scope-msg">' + escHtml(t('offScopeMsg', "This page isn't part of the review.")) + '</span>' +
       '<span class="rv-off-scope-actions">' +
         (rv.landingUrl
-          ? '<a class="rv-off-scope-back" href="' + escAttr(rv.landingUrl) + '">' + escHtml(i18n.offScopeBack || 'Back to dashboard') + ' →</a>'
+          ? '<a class="rv-off-scope-back" href="' + escAttr(rv.landingUrl) + '">' + escHtml(t('offScopeBack', 'Back to dashboard')) + ' →</a>'
           : '') +
-        '<button type="button" class="rv-off-scope-exit">' + escHtml(i18n.offScopeExit || 'Exit review mode') + '</button>' +
+        '<button type="button" class="rv-off-scope-exit">' + escHtml(t('offScopeExit', 'Exit review mode')) + '</button>' +
       '</span>';
     document.body.insertBefore(el, document.body.firstChild);
 
@@ -644,13 +655,12 @@
     var rv = cfg.review || {};
     if (!rv.readOnly) return;
     if (document.getElementById('dxf-read-only')) return;
-    var i18n = cfg.i18n || {};
     var el = document.createElement('div');
     el.id = 'dxf-read-only';
     el.className = 'rv-off-scope rv-read-only';
     el.innerHTML =
       '<span class="rv-off-scope-msg">' +
-        escHtml(i18n.readOnlyMsg || 'This review is read-only — you can still read all the feedback here.') +
+        escHtml(t('readOnlyMsg', 'This review is read-only — you can still read all the feedback here.')) +
       '</span>';
     document.body.insertBefore(el, document.body.firstChild);
   }
@@ -804,7 +814,7 @@
     if (firstMount) {
       var ifr = document.createElement('iframe');
       ifr.id = 'dxf-vp-iframe';
-      ifr.setAttribute('title', 'Page preview');
+      ifr.setAttribute('title', t('pagePreview', 'Page preview'));
       ifr.src = vpBuildIframeSrc();
       ifr.addEventListener('load', function () {
         // Pin layer lives inside the canvas doc — scrolling the iframe

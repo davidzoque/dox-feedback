@@ -199,6 +199,156 @@ class DXF_Comments {
     }
 
     /**
+     * Translatable strings for the shared comment engine (engine.js).
+     * Supplied to BOTH the builder overlay and the front-end review portal so
+     * engine.js resolves every label via cfg.i18n (English is the JS fallback).
+     * Keys must match the t('key', …) calls in assets/comment-engine/engine.js.
+     */
+    public static function engine_i18n(): array {
+        return [
+            // Statuses (also read by the builder host)
+            'open'                => __('Open', 'dox-feedback'),
+            'inProgress'          => __('In review', 'dox-feedback'),
+            'resolved'            => __('Resolved', 'dox-feedback'),
+            'orphaned'            => __('Element removed', 'dox-feedback'),
+            'unassigned'          => __('Unassigned', 'dox-feedback'),
+            // Relative time
+            'time.justNow'        => __('just now', 'dox-feedback'),
+            'time.minutesAgo'     => __('%dm ago', 'dox-feedback'),
+            'time.hoursAgo'       => __('%dh ago', 'dox-feedback'),
+            'time.daysAgo'        => __('%dd ago', 'dox-feedback'),
+            // Theme toggle
+            'theme.switchToDark'  => __('Switch to dark mode', 'dox-feedback'),
+            'theme.switchToLight' => __('Switch to light mode', 'dox-feedback'),
+            'theme.toggle'        => __('Toggle theme', 'dox-feedback'),
+            'theme.toggleTitle'   => __('Toggle light / dark', 'dox-feedback'),
+            // Comment card
+            'comment.delete'        => __('Delete comment', 'dox-feedback'),
+            'comment.deleteConfirm' => __('Click again to delete', 'dox-feedback'),
+            'comment.edit'          => __('Edit comment', 'dox-feedback'),
+            'comment.numberTitle'   => __('Comment #%d', 'dox-feedback'),
+            // Screenshot
+            'shot.unavailable'    => __('⚠ Screenshot unavailable', 'dox-feedback'),
+            'shot.annotated'      => __('✓ Screenshot annotated', 'dox-feedback'),
+            'shot.preparing'      => __('Screenshot still preparing…', 'dox-feedback'),
+            'shot.view'           => __('View screenshot', 'dox-feedback'),
+            'shot.label'          => __('Screenshot', 'dox-feedback'),
+            // Comment form
+            'form.addComment'     => __('Add comment', 'dox-feedback'),
+            'form.placeholder'    => __('Leave a comment… (Enter to send, Shift+Enter for a new line)', 'dox-feedback'),
+            'form.attachFiles'    => __('Attach files', 'dox-feedback'),
+            'form.annotateShot'   => __('Annotate screenshot', 'dox-feedback'),
+            'form.emptyError'     => __('Please enter a comment.', 'dox-feedback'),
+            // Generic actions
+            'action.close'        => __('Close', 'dox-feedback'),
+            'action.cancel'       => __('Cancel', 'dox-feedback'),
+            'action.save'         => __('Save', 'dox-feedback'),
+            'file.remove'         => __('Remove file', 'dox-feedback'),
+            // Busy states
+            'state.saving'        => __('Saving…', 'dox-feedback'),
+            'state.sending'       => __('Sending…', 'dox-feedback'),
+            'state.adding'        => __('Adding…', 'dox-feedback'),
+            'state.failed'        => __('Failed', 'dox-feedback'),
+            // Errors
+            'error.generic'       => __('Something went wrong.', 'dox-feedback'),
+            'error.network'       => __('Network error. Please try again.', 'dox-feedback'),
+            'error.jsOne'         => __('⚠ %d JS error', 'dox-feedback'),
+            'error.jsMany'        => __('⚠ %d JS errors', 'dox-feedback'),
+            // Annotator
+            'annot.title'         => __('Draw on the screenshot', 'dox-feedback'),
+            'annot.clear'         => __('Clear', 'dox-feedback'),
+            // Sidebar / scope / device filters
+            'sidebar.brand'       => __('Comments', 'dox-feedback'),
+            'scope.thisPage'      => __('This page', 'dox-feedback'),
+            'scope.everything'    => __('Everything', 'dox-feedback'),
+            'device.all'          => __('All devices', 'dox-feedback'),
+            'device.desktop'      => __('Desktop', 'dox-feedback'),
+            'device.tablet'       => __('Tablet', 'dox-feedback'),
+            'device.mobile'       => __('Mobile', 'dox-feedback'),
+            'resolved.toggleHint' => __('Include resolved comments in the list', 'dox-feedback'),
+            // AI summary
+            'ai.summarize'        => __('Summarize feedback', 'dox-feedback'),
+            'ai.summarizeTitle'   => __('Summarize feedback (AI)', 'dox-feedback'),
+            'ai.summarizeFailed'  => __('Could not summarize.', 'dox-feedback'),
+            'ai.failedTitle'      => __('Summarize failed.', 'dox-feedback'),
+            'ai.modelHint'        => __('If the message names a model id, the AI provider rejected it — update the model under Dox Feedback → AI.', 'dox-feedback'),
+            'ai.summaryTitle'     => __('Feedback summary', 'dox-feedback'),
+            // Dock
+            'dock.toSide'         => __('Dock to side', 'dox-feedback'),
+            'dock.toSideFloat'    => __('Dock to side / float', 'dox-feedback'),
+            // Approval flow
+            'approve.done'        => __('Page approved', 'dox-feedback'),
+            'approve.blockedTip'  => __('Resolve every open comment before approving — %d still open.', 'dox-feedback'),
+            'approve.mark'        => __('Mark page as approved', 'dox-feedback'),
+            'approve.authority'   => __('I confirm I have the authority to approve this page.', 'dox-feedback'),
+            'approve.recordNote'  => __('Your name, email, and the date & time will be recorded as a record of this approval.', 'dox-feedback'),
+            'approve.button'      => __('Approve page', 'dox-feedback'),
+            'approve.bannerTitle' => __('Page approved by %s', 'dox-feedback'),
+            'approve.revert'      => __('Revert approval', 'dox-feedback'),
+            'approve.revertConfirm' => __('Revert this page back to unapproved? The original approval record is removed.', 'dox-feedback'),
+            'approve.reverting'   => __('Reverting…', 'dox-feedback'),
+            // Review / finish flow
+            'review.reviewedUndo' => __('Reviewed — undo', 'dox-feedback'),
+            'review.markReviewed' => __('Mark as reviewed', 'dox-feedback'),
+            'review.finishNotify' => __('Finish & notify developer', 'dox-feedback'),
+            'review.assignTo'     => __('Assign to a Review', 'dox-feedback'),
+            'review.assign'       => __('Assign', 'dox-feedback'),
+            'review.untitled'     => __('(untitled review)', 'dox-feedback'),
+            'review.all'          => __('All Reviews', 'dox-feedback'),
+            'review.outside'      => __('Outside any Review', 'dox-feedback'),
+            'review.numbered'     => __('Review #%d', 'dox-feedback'),
+            'review.new'          => __('+ New Review', 'dox-feedback'),
+            'review.noneActive'   => __('No active reviews', 'dox-feedback'),
+            'review.assignFailed' => __('Could not assign comment.', 'dox-feedback'),
+            'finish.notePlaceholder' => __('Add a note for your developer (optional)…', 'dox-feedback'),
+            'finish.send'         => __('Send to developer', 'dox-feedback'),
+            'finish.notified'     => __('Developer notified', 'dox-feedback'),
+            // Identity strip
+            'identity.commentingAs' => __('Commenting as', 'dox-feedback'),
+            'identity.change'     => __('Change', 'dox-feedback'),
+            'role.reviewer'       => __('Reviewer', 'dox-feedback'),
+            'role.teamMember'     => __('Team member', 'dox-feedback'),
+            // Replies / threads
+            'react'               => __('React', 'dox-feedback'),
+            'reply'               => __('Reply', 'dox-feedback'),
+            'reply.placeholder'   => __('Write a reply… (Enter to send)', 'dox-feedback'),
+            'reply.peekMore'      => __('+%d more', 'dox-feedback'),
+            'thread.hide'         => __('Hide thread', 'dox-feedback'),
+            'thread.show'         => __('Show thread', 'dox-feedback'),
+            'thread.showReply'    => __('Show thread & reply', 'dox-feedback'),
+            'thread.replyOne'     => __('%d reply', 'dox-feedback'),
+            'thread.replyMany'    => __('%d replies', 'dox-feedback'),
+            'resolve.reopen'      => __('Reopen this comment', 'dox-feedback'),
+            'resolve.mark'        => __('Mark as resolved', 'dox-feedback'),
+            // Media library
+            'media.added'         => __('✓ Added', 'dox-feedback'),
+            'media.addToLibrary'  => __('Add to Media Library', 'dox-feedback'),
+            'media.addShort'      => __('+ Media', 'dox-feedback'),
+            'media.addedToLibrary'=> __('✓ Added to Media Library', 'dox-feedback'),
+            'media.failedRetry'   => __('Failed — try again', 'dox-feedback'),
+            'attach.image'        => __('Image', 'dox-feedback'),
+            'attach.attachment'   => __('Attachment', 'dox-feedback'),
+            'attach.file'         => __('File', 'dox-feedback'),
+            'page.openInBuilder'  => __('Open in builder', 'dox-feedback'),
+            // Pills / modes
+            'pill.status'         => __('Status', 'dox-feedback'),
+            'pill.assignee'       => __('Assignee', 'dox-feedback'),
+            'mode.cursor'         => __('Cursor mode', 'dox-feedback'),
+            'mode.browse'         => __('Browse', 'dox-feedback'),
+            'mode.comment'        => __('Comment', 'dox-feedback'),
+            // Empty states
+            'approvedEmpty.title' => __('This page has been approved', 'dox-feedback'),
+            'approvedEmpty.body'  => __('New comments are closed because this page has been marked as approved. If something\'s changed, ask the team to re-open the review.', 'dox-feedback'),
+            'empty.noComments'    => __('No %s comments%s.', 'dox-feedback'),
+            'empty.filter.open'   => __('open', 'dox-feedback'),
+            'empty.filter.resolved' => __('resolved', 'dox-feedback'),
+            'empty.filter.mine'   => __('mine', 'dox-feedback'),
+            'empty.filter.all'    => __('all', 'dox-feedback'),
+            'empty.siteWideSuffix'=> __(' site-wide', 'dox-feedback'),
+        ];
+    }
+
+    /**
      * The `dxfComments` config consumed by every in-editor host (the Bricks
      * builder host and the Elementor editor host). Parameterised by the post
      * being edited so each host gets the right page id + approval state.
@@ -229,18 +379,14 @@ class DXF_Comments {
             'reviews'        => self::active_reviews_for_picker(),
             'newReviewUrl'   => admin_url('admin.php?page=dxf-reviews&action=new'),
             'aiEnabled'      => class_exists('DXF_AI') ? DXF_AI::is_ready() : false,
-            'i18n'          => [
+            'i18n'          => array_merge( self::engine_i18n(), [
+                // Builder-host-only labels (Bricks toolbar); engine strings come from engine_i18n().
                 'commentMode' => __('Comment mode', 'dox-feedback'),
                 'addComment'  => __('Add a comment…', 'dox-feedback'),
                 'resolve'     => __('Resolve', 'dox-feedback'),
                 'reopen'      => __('Reopen', 'dox-feedback'),
                 'reply'       => __('Reply', 'dox-feedback'),
-                'orphaned'    => __('Element removed', 'dox-feedback'),
-                'unassigned'  => __('Unassigned', 'dox-feedback'),
-                'open'        => __('Open', 'dox-feedback'),
-                'inProgress'  => __('In progress', 'dox-feedback'),
-                'resolved'    => __('Resolved', 'dox-feedback'),
-            ],
+            ] ),
         ];
     }
 

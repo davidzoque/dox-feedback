@@ -802,7 +802,8 @@ class DXF_Review_Mode {
                 'review'         => $review_payload,
                 'memberEmail'    => $review_payload['memberEmail'] ?? '',
                 'memberName'     => $review_payload['memberName']  ?? '',
-                'i18n'           => [
+                'i18n'           => array_merge( DXF_Comments::engine_i18n(), [
+                    // Portal-only strings (nav panel, off-scope banner, identity gate).
                     'orphaned'      => __('Element removed', 'dox-feedback'),
                     'navTitle'      => __('Pages in this review', 'dox-feedback'),
                     'navAllPages'   => __('All pages', 'dox-feedback'),
@@ -820,7 +821,26 @@ class DXF_Review_Mode {
                     'fabTip'        => __('Click the Feedback button to pin comments anywhere on this page.', 'dox-feedback'),
                     'fabTipClose'   => __('Dismiss', 'dox-feedback'),
                     'switchReview'  => __('Switch review', 'dox-feedback'),
-                ],
+                    // FAB + reviewer identity gate (moved out of review.js)
+                    'fab'                      => __('Feedback', 'dox-feedback'),
+                    'brandDefaultName'         => __('Comments', 'dox-feedback'),
+                    'pagePreview'              => __('Page preview', 'dox-feedback'),
+                    'identity.name'            => __('Your name', 'dox-feedback'),
+                    'identity.namePlaceholder' => __('Jane Smith', 'dox-feedback'),
+                    'identity.back'            => __('Back', 'dox-feedback'),
+                    'identity.save'            => __('Save', 'dox-feedback'),
+                    'identity.enterName'       => __('Please enter your name.', 'dox-feedback'),
+                    'identity.fromInvitation'  => __('From your invitation', 'dox-feedback'),
+                    'identity.email'           => __('Your email', 'dox-feedback'),
+                    'identity.optional'        => __('(optional)', 'dox-feedback'),
+                    'identity.emailNote'       => __('We\'ll send replies to this address — it\'s the one your invite was sent to.', 'dox-feedback'),
+                    'identity.emailPlaceholder'=> __('jane@example.com', 'dox-feedback'),
+                    'identity.continue'        => __('Continue', 'dox-feedback'),
+                    'identity.invalidEmail'    => __('Please enter a valid email address, or leave it blank.', 'dox-feedback'),
+                    'identity.intro'           => __('Before leaving feedback on %s, tell us who you are.', 'dox-feedback'),
+                    'identity.continueAsName'  => __('Continue as %s', 'dox-feedback'),
+                    'identity.thisReviewer'    => __('this reviewer', 'dox-feedback'),
+                ] ),
             ]);
         });
     }

@@ -17,6 +17,15 @@
     version: '1.0.0',
   };
 
+  // Module-scope translation lookup for strings that live OUTSIDE init()
+  // (e.g. the timeAgo helper). init() publishes its resolved i18n map onto
+  // window.__dxfI18n so these can resolve too; falls back to the English
+  // literal when no translation is supplied. Prefer t() inside init().
+  function DXF_T(k, fb) {
+    try { return (window.__dxfI18n && window.__dxfI18n[k]) || fb; }
+    catch (e) { return fb; }
+  }
+
   // ===========================================================================
   // Auto-contrast for the accent text colour.
   //
@@ -57,6 +66,14 @@
     var caps    = host.capabilities || {};
     var brand   = host.brand || {};
     var ACCENT  = (brand.accent && /^#[0-9a-fA-F]{3,6}$/.test(brand.accent)) ? brand.accent : '#ff8d27';
+
+    // i18n: translations supplied from PHP via cfg.i18n. t(key, fallback)
+    // returns the translation if present, else the English fallback so
+    // behaviour is unchanged when no translation is supplied. Also published
+    // to window.__dxfI18n so module-scope helpers (DXF_T) can resolve.
+    var I18N = cfg.i18n || {};
+    function t(k, fb) { var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+    window.__dxfI18n = I18N;
 
     // A read-only review (e.g. an add-on paused it): clients keep full read
     // access (list + pins); new comments and replies are suppressed in the UI
@@ -198,7 +215,7 @@
       if (!btn) return;
       var current = document.documentElement.getAttribute('data-rv-theme') || preferredTheme();
       btn.innerHTML = (current === 'light' ? ICONS.moon : ICONS.sun);
-      btn.setAttribute('aria-label', current === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
+      btn.setAttribute('aria-label', current === 'light' ? t('theme.switchToDark', 'Switch to dark mode') : t('theme.switchToLight', 'Switch to light mode'));
     }
 
     // Dock-to-side: snap the floating panel to the right edge (full height, its
@@ -357,10 +374,10 @@
     function timeAgo(datetime) {
       if (!datetime) return '';
       var d = new Date(datetime.replace(' ', 'T') + 'Z'), diff = Math.floor((Date.now() - d.getTime()) / 1000);
-      if (diff < 60)    return 'just now';
-      if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
-      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-      return Math.floor(diff / 86400) + 'd ago';
+      if (diff < 60)    return DXF_T('time.justNow', 'just now');
+      if (diff < 3600)  return DXF_T('time.minutesAgo', '%dm ago').replace('%d', Math.floor(diff / 60));
+      if (diff < 86400) return DXF_T('time.hoursAgo', '%dh ago').replace('%d', Math.floor(diff / 3600));
+      return DXF_T('time.daysAgo', '%dd ago').replace('%d', Math.floor(diff / 86400));
     }
     function getCommentNumber(id) {
       var topLevel = state.comments.filter(function (c) { return !c.parent_id; });
@@ -413,9 +430,9 @@
     }
     // Two-click delete confirm (Bricks-style): no browser dialog.
     function armDeleteButton(btn) {
-      var prevTitle = btn.getAttribute('title') || 'Delete comment';
+      var prevTitle = btn.getAttribute('title') || t('comment.delete', 'Delete comment');
       btn.classList.add('is-armed');
-      btn.setAttribute('title', 'Click again to delete');
+      btn.setAttribute('title', t('comment.deleteConfirm', 'Click again to delete'));
       var disarm = function () {
         clearTimeout(btn._dxfArmTimer);
         btn.classList.remove('is-armed');
@@ -913,13 +930,13 @@
       var el = document.querySelector('#dxf-comment-form .dxf-form-shot');
       if (!el) return;
       if (stateName === 'fail') {
-        el.textContent = '⚠ Screenshot unavailable';
+        el.textContent = t('shot.unavailable', '⚠ Screenshot unavailable');
         el.className   = 'dxf-form-shot dxf-form-shot--fail';
       } else if (stateName === 'annotated') {
-        el.textContent = '✓ Screenshot annotated';
+        el.textContent = t('shot.annotated', '✓ Screenshot annotated');
         el.className   = 'dxf-form-shot dxf-form-shot--ok';
       } else if (stateName === 'pending') {
-        el.textContent = 'Screenshot still preparing…';
+        el.textContent = t('shot.preparing', 'Screenshot still preparing…');
         el.className   = 'dxf-form-shot';
       } else {
         el.textContent = '';
@@ -938,7 +955,7 @@
       form.querySelector('.dxf-form-textarea').value    = '';
       form.querySelector('.dxf-form-error').textContent = '';
       form.querySelector('.dxf-btn-submit').disabled    = false;
-      form.querySelector('.dxf-btn-submit').textContent = 'Add comment';
+      form.querySelector('.dxf-btn-submit').textContent = t('form.addComment', 'Add comment');
       // File input is absent when uploads are disabled for the review (e.g. the
       // public demo). Guard it — touching .value on null threw here and aborted
       // the rest of showCommentForm, leaving the form unplaced + unfocused.
@@ -984,24 +1001,24 @@
 
       form.innerHTML =
         '<div class="dxf-form-header">' +
-          '<span>Add comment</span>' +
-          '<button class="dxf-form-close" type="button" aria-label="Close">&#x2715;</button>' +
+          '<span>' + escHtml(t('form.addComment', 'Add comment')) + '</span>' +
+          '<button class="dxf-form-close" type="button" aria-label="' + escAttr(t('action.close', 'Close')) + '">&#x2715;</button>' +
         '</div>' +
-        '<textarea class="dxf-form-textarea" placeholder="Leave a comment… (Enter to send, Shift+Enter for a new line)" rows="3"></textarea>' +
+        '<textarea class="dxf-form-textarea" placeholder="' + escAttr(t('form.placeholder', 'Leave a comment… (Enter to send, Shift+Enter for a new line)')) + '" rows="3"></textarea>' +
         '<p class="dxf-form-error"></p>' +
         '<div class="dxf-form-shot"></div>' +
         '<div class="dxf-form-attach">' +
           (uploadsOff() ? '' :
             '<input type="file" class="dxf-file-input" multiple hidden>' +
-            '<button type="button" class="dxf-attach-btn">' + ICONS.attach + 'Attach files</button>') +
+            '<button type="button" class="dxf-attach-btn">' + ICONS.attach + escHtml(t('form.attachFiles', 'Attach files')) + '</button>') +
           (caps.canAnnotate
-            ? '<button type="button" class="dxf-annot-btn">&#9998; Annotate screenshot</button>'
+            ? '<button type="button" class="dxf-annot-btn">&#9998; ' + escHtml(t('form.annotateShot', 'Annotate screenshot')) + '</button>'
             : '') +
           '<div class="dxf-file-list"></div>' +
         '</div>' +
         '<div class="dxf-form-actions">' +
-          '<button class="dxf-btn dxf-btn-ghost dxf-btn-cancel" type="button">Cancel</button>' +
-          '<button class="dxf-btn dxf-btn-primary dxf-btn-submit" type="button">Add comment</button>' +
+          '<button class="dxf-btn dxf-btn-ghost dxf-btn-cancel" type="button">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+          '<button class="dxf-btn dxf-btn-primary dxf-btn-submit" type="button">' + escHtml(t('form.addComment', 'Add comment')) + '</button>' +
         '</div>';
 
       form.querySelector('.dxf-form-close').addEventListener('click', closeCommentForm);
@@ -1122,7 +1139,7 @@
       list.innerHTML = files.map(function (f, i) {
         return '<div class="dxf-file-pill">' +
           '<span title="' + escAttr(f.name) + '">' + escHtml(formatFileName(f.name)) + '</span>' +
-          '<button type="button" class="dxf-file-remove" data-idx="' + i + '" aria-label="Remove file">&times;</button>' +
+          '<button type="button" class="dxf-file-remove" data-idx="' + i + '" aria-label="' + escAttr(t('file.remove', 'Remove file')) + '">&times;</button>' +
         '</div>';
       }).join('');
       list.querySelectorAll('.dxf-file-remove').forEach(function (btn) {
@@ -1139,8 +1156,8 @@
       var errorEl = form.querySelector('.dxf-form-error');
       var btn     = form.querySelector('.dxf-btn-submit');
 
-      if (!body) { errorEl.textContent = 'Please enter a comment.'; return; }
-      btn.disabled = true; btn.textContent = 'Saving…'; errorEl.textContent = '';
+      if (!body) { errorEl.textContent = t('form.emptyError', 'Please enter a comment.'); return; }
+      btn.disabled = true; btn.textContent = t('state.saving', 'Saving…'); errorEl.textContent = '';
 
       var anchor = state.pendingAnchor || {};
       var files  = form._pendingFiles && form._pendingFiles.length ? form._pendingFiles : null;
@@ -1214,7 +1231,7 @@
         });
       }).then(function (wrap) {
         var result = wrap.result;
-        btn.disabled = false; btn.textContent = 'Add comment';
+        btn.disabled = false; btn.textContent = t('form.addComment', 'Add comment');
         if (result.success) {
           var newId = result.data && result.data.id;
           if (wrap.late && newId && shotPromise && host.api.attachScreenshot) {
@@ -1228,12 +1245,12 @@
           refreshComments();
         } else {
           dropOptimistic();
-          errorEl.textContent = (result.data && result.data.message) || 'Something went wrong.';
+          errorEl.textContent = (result.data && result.data.message) || t('error.generic', 'Something went wrong.');
         }
       }).catch(function () {
         dropOptimistic();
-        btn.disabled = false; btn.textContent = 'Add comment';
-        errorEl.textContent = 'Network error. Please try again.';
+        btn.disabled = false; btn.textContent = t('form.addComment', 'Add comment');
+        errorEl.textContent = t('error.network', 'Network error. Please try again.');
       });
     }
 
@@ -1247,11 +1264,11 @@
       overlay.innerHTML =
         '<div class="dxf-annot-inner">' +
           '<div class="dxf-annot-toolbar">' +
-            '<span class="dxf-annot-title">Draw on the screenshot</span>' +
+            '<span class="dxf-annot-title">' + escHtml(t('annot.title', 'Draw on the screenshot')) + '</span>' +
             '<span class="dxf-annot-tools">' +
-              '<button type="button" class="dxf-btn dxf-btn-ghost dxf-annot-clear">Clear</button>' +
-              '<button type="button" class="dxf-btn dxf-btn-ghost dxf-annot-cancel">Cancel</button>' +
-              '<button type="button" class="dxf-btn dxf-btn-primary dxf-annot-save">Save</button>' +
+              '<button type="button" class="dxf-btn dxf-btn-ghost dxf-annot-clear">' + escHtml(t('annot.clear', 'Clear')) + '</button>' +
+              '<button type="button" class="dxf-btn dxf-btn-ghost dxf-annot-cancel">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+              '<button type="button" class="dxf-btn dxf-btn-primary dxf-annot-save">' + escHtml(t('action.save', 'Save')) + '</button>' +
             '</span>' +
           '</div>' +
           '<div class="dxf-annot-stage"><canvas class="dxf-annot-canvas"></canvas></div>' +
@@ -1281,7 +1298,7 @@
       overlay.querySelector('.dxf-annot-cancel').addEventListener('click', teardown);
       overlay.querySelector('.dxf-annot-save').addEventListener('click', function () {
         var btn = overlay.querySelector('.dxf-annot-save');
-        btn.disabled = true; btn.textContent = 'Saving…';
+        btn.disabled = true; btn.textContent = t('state.saving', 'Saving…');
         var out;
         try { out = canvas.toDataURL('image/jpeg', 0.85); } catch (e) { out = null; }
         if (!out) { teardown(); return; }
@@ -1318,7 +1335,7 @@
         }
       } else {
         titleInner = ICONS.commentIcon + '<span class="dxf-sidebar-name">' +
-                     escHtml(brand.name || 'Comments') + '</span>';
+                     escHtml(brand.name || t('sidebar.brand', 'Comments')) + '</span>';
       }
 
       var sidebar = document.createElement('div');
@@ -1332,8 +1349,8 @@
       // ── Scope tabs: This page / Everything (full-width tab row) ──
       var scopeBar = caps.canScope
         ? '<div class="dxf-scope-bar">' +
-            '<button class="dxf-scope-btn active" data-scope="page">This page <span class="dxf-scope-count" data-scope-count="page"></span></button>' +
-            '<button class="dxf-scope-btn" data-scope="all">Everything <span class="dxf-scope-count" data-scope-count="all"></span></button>' +
+            '<button class="dxf-scope-btn active" data-scope="page">' + escHtml(t('scope.thisPage', 'This page')) + ' <span class="dxf-scope-count" data-scope-count="page"></span></button>' +
+            '<button class="dxf-scope-btn" data-scope="all">' + escHtml(t('scope.everything', 'Everything')) + ' <span class="dxf-scope-count" data-scope-count="all"></span></button>' +
           '</div>'
         : '';
 
@@ -1343,7 +1360,7 @@
       var devSel = caps.canDeviceFilter
         ? '<button type="button" class="dxf-dropdown dxf-device-drop" data-pill="device">' +
             '<span class="dxf-dropdown-icon">' + ICONS.deviceIcon + '</span>' +
-            '<span class="dxf-dropdown-label">All devices</span>' +
+            '<span class="dxf-dropdown-label">' + escHtml(t('device.all', 'All devices')) + '</span>' +
             '<span class="dxf-dropdown-chev">' + ICONS.chev + '</span>' +
           '</button>'
         : '';
@@ -1351,16 +1368,16 @@
         ? '<div class="dxf-review-bar" id="dxf-review-bar"></div>'
         : '';
       var resolvedToggle =
-        '<label class="dxf-resolved-toggle" title="Include resolved comments in the list">' +
+        '<label class="dxf-resolved-toggle" title="' + escAttr(t('resolved.toggleHint', 'Include resolved comments in the list')) + '">' +
           '<input type="checkbox" class="dxf-resolved-check"' + (state.filter && state.filter !== 'open' ? ' checked' : '') + '>' +
-          '<span>Resolved</span>' +
+          '<span>' + escHtml(t('resolved', 'Resolved')) + '</span>' +
         '</label>';
       var toolsRow = '<div class="dxf-tools-row">' + devSel + reviewContainer + resolvedToggle + '</div>';
 
       // ── AI summarize — a compact header icon, not a full-width bar (the
       //    old bar cost an entire row of vertical space in the docked panel).
       var aiBtn = caps.canSummarize
-        ? '<button type="button" class="dxf-ai-summarize dxf-ai-headbtn" aria-label="Summarize feedback" title="Summarize feedback (AI)">&#10024;</button>'
+        ? '<button type="button" class="dxf-ai-summarize dxf-ai-headbtn" aria-label="' + escAttr(t('ai.summarize', 'Summarize feedback')) + '" title="' + escAttr(t('ai.summarizeTitle', 'Summarize feedback (AI)')) + '">&#10024;</button>'
         : '';
 
       sidebar.innerHTML =
@@ -1369,13 +1386,13 @@
           '<div class="dxf-sidebar-actions">' +
             aiBtn +
             (caps.canDockRight ?
-              '<button class="dxf-dockright-toggle" type="button" aria-label="Dock to side" title="Dock to side / float">' +
+              '<button class="dxf-dockright-toggle" type="button" aria-label="' + escAttr(t('dock.toSide', 'Dock to side')) + '" title="' + escAttr(t('dock.toSideFloat', 'Dock to side / float')) + '">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                   '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>' +
                 '</svg></button>' : '') +
             (caps.canToggleTheme === false ? '' :
-              '<button class="dxf-theme-toggle" type="button" aria-label="Toggle theme" title="Toggle light / dark"></button>') +
-            '<button class="dxf-sidebar-close" aria-label="Close">' + ICONS.close + '</button>' +
+              '<button class="dxf-theme-toggle" type="button" aria-label="' + escAttr(t('theme.toggle', 'Toggle theme')) + '" title="' + escAttr(t('theme.toggleTitle', 'Toggle light / dark')) + '"></button>') +
+            '<button class="dxf-sidebar-close" aria-label="' + escAttr(t('action.close', 'Close')) + '">' + ICONS.close + '</button>' +
           '</div>' +
         '</div>' +
         scopeBar + toolsRow +
@@ -1414,7 +1431,7 @@
       if (themeBtn) {
         var currentTheme = document.documentElement.getAttribute('data-rv-theme') || preferredTheme();
         themeBtn.innerHTML = (currentTheme === 'light' ? ICONS.moon : ICONS.sun);
-        themeBtn.setAttribute('aria-label', currentTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
+        themeBtn.setAttribute('aria-label', currentTheme === 'light' ? t('theme.switchToDark', 'Switch to dark mode') : t('theme.switchToLight', 'Switch to light mode'));
       }
 
       // Delegated handler — opens the custom popover for any [data-pill]
@@ -1583,10 +1600,10 @@
       var pill = document.createElement('div');
       pill.id = 'dxf-mode-pill';
       pill.setAttribute('role', 'group');
-      pill.setAttribute('aria-label', 'Cursor mode');
+      pill.setAttribute('aria-label', t('mode.cursor', 'Cursor mode'));
       pill.innerHTML =
-        '<button type="button" class="dxf-mode-btn" data-mode="browse" aria-pressed="true">'  + ICONS.cursor  + '<span>Browse</span></button>' +
-        '<button type="button" class="dxf-mode-btn" data-mode="comment" aria-pressed="false">' + ICONS.comment + '<span>Comment</span></button>';
+        '<button type="button" class="dxf-mode-btn" data-mode="browse" aria-pressed="true">'  + ICONS.cursor  + '<span>' + escHtml(t('mode.browse', 'Browse')) + '</span></button>' +
+        '<button type="button" class="dxf-mode-btn" data-mode="comment" aria-pressed="false">' + ICONS.comment + '<span>' + escHtml(t('mode.comment', 'Comment')) + '</span></button>';
       pill.querySelector('[data-mode="browse"]').addEventListener('click', function () {
         if (state.commentMode) disableCommentMode(); else updateModePill();
       });
@@ -1703,15 +1720,15 @@
         }
         approveDisabled = !cfg.completed && unresolvedCount > 0;
         if (cfg.completed) {
-          approval = '<div class="dxf-approved-state">' + ICONS.check + '<span>Page approved</span></div>';
+          approval = '<div class="dxf-approved-state">' + ICONS.check + '<span>' + escHtml(t('approve.done', 'Page approved')) + '</span></div>';
         } else if (approveDisabled) {
           // The "why disabled" reason now lives in a hover tooltip on the
           // button itself rather than as inline text above it.
-          var blockTip = 'Resolve every open comment before approving — ' + unresolvedCount + ' still open.';
+          var blockTip = t('approve.blockedTip', 'Resolve every open comment before approving — %d still open.').replace('%d', unresolvedCount);
           approval = '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full is-disabled" id="dxf-mark-complete" ' +
-            'aria-disabled="true" title="' + escAttr(blockTip) + '">Mark page as approved</button>';
+            'aria-disabled="true" title="' + escAttr(blockTip) + '">' + escHtml(t('approve.mark', 'Mark page as approved')) + '</button>';
         } else {
-          approval = '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full" id="dxf-mark-complete">Mark page as approved</button>';
+          approval = '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full" id="dxf-mark-complete">' + escHtml(t('approve.mark', 'Mark page as approved')) + '</button>';
         }
       }
 
@@ -1730,18 +1747,18 @@
             if ((rv.pages[p].id | 0) === (cfg.postId | 0)) { thisReviewed = !!rv.pages[p].reviewed; break; }
           }
           doneBtn = thisReviewed
-            ? '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-reviewed-toggle is-reviewed" id="dxf-unreview">' + ICONS.check + '<span>Reviewed — undo</span></button>'
-            : '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-mark-reviewed">Mark as reviewed</button>';
+            ? '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-reviewed-toggle is-reviewed" id="dxf-unreview">' + ICONS.check + '<span>' + escHtml(t('review.reviewedUndo', 'Reviewed — undo')) + '</span></button>'
+            : '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-mark-reviewed">' + escHtml(t('review.markReviewed', 'Mark as reviewed')) + '</button>';
         } else {
-          doneBtn = '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-finish-review">Finish &amp; notify developer</button>';
+          doneBtn = '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-finish-review">' + escHtml(t('review.finishNotify', 'Finish & notify developer')) + '</button>';
         }
       }
 
       var identityStrip = host.identity.isLoggedIn
         ? ''
         : '<div class="dxf-identity-strip">' +
-            'Commenting as <strong>' + escHtml(host.identity.name) + '</strong> ' +
-            '<button type="button" class="dxf-link-btn" id="dxf-change-identity">Change</button>' +
+            escHtml(t('identity.commentingAs', 'Commenting as')) + ' <strong>' + escHtml(host.identity.name) + '</strong> ' +
+            '<button type="button" class="dxf-link-btn" id="dxf-change-identity">' + escHtml(t('identity.change', 'Change')) + '</button>' +
           '</div>';
 
       // Done + Approve sit side-by-side.
@@ -1752,13 +1769,13 @@
       var markRevBtn = footer.querySelector('#dxf-mark-reviewed');
       if (markRevBtn) markRevBtn.addEventListener('click', function () {
         markRevBtn.disabled = true;
-        markRevBtn.textContent = 'Saving…';
+        markRevBtn.textContent = t('state.saving', 'Saving…');
         host.api.markReviewed(true).then(function (res) {
           if (res && res.dashboardUrl) { window.location.href = res.dashboardUrl; }
           else { renderFooter(); }
         }).catch(function () {
           markRevBtn.disabled = false;
-          markRevBtn.textContent = 'Mark as reviewed';
+          markRevBtn.textContent = t('review.markReviewed', 'Mark as reviewed');
         });
       });
 
@@ -1783,10 +1800,10 @@
         if (!actions) return;
         actions.innerHTML =
           '<div class="dxf-finish-note">' +
-            '<textarea id="dxf-finish-note-text" rows="2" placeholder="Add a note for your developer (optional)…"></textarea>' +
+            '<textarea id="dxf-finish-note-text" rows="2" placeholder="' + escAttr(t('finish.notePlaceholder', 'Add a note for your developer (optional)…')) + '"></textarea>' +
             '<div class="dxf-finish-note-actions">' +
-              '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-finish-cancel">Cancel</button>' +
-              '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-finish-send">Send to developer</button>' +
+              '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-finish-cancel">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+              '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-finish-send">' + escHtml(t('finish.send', 'Send to developer')) + '</button>' +
             '</div>' +
           '</div>';
         var ta = footer.querySelector('#dxf-finish-note-text');
@@ -1797,13 +1814,13 @@
         if (sendBtn) sendBtn.addEventListener('click', function () {
           var note = ta ? ta.value : '';
           sendBtn.disabled = true;
-          sendBtn.textContent = 'Sending…';
+          sendBtn.textContent = t('state.sending', 'Sending…');
           host.api.reviewDone(note).then(function () {
             var a = footer.querySelector('.dxf-footer-actions');
-            if (a) a.innerHTML = '<div class="dxf-done-state">' + ICONS.check + '<span>Developer notified</span></div>';
+            if (a) a.innerHTML = '<div class="dxf-done-state">' + ICONS.check + '<span>' + escHtml(t('finish.notified', 'Developer notified')) + '</span></div>';
           }).catch(function () {
             sendBtn.disabled = false;
-            sendBtn.textContent = 'Send to developer';
+            sendBtn.textContent = t('finish.send', 'Send to developer');
           });
         });
       });
@@ -1858,11 +1875,11 @@
       box.className = 'dxf-approve-confirm';
       box.innerHTML =
         '<label class="dxf-approve-auth"><input type="checkbox" id="dxf-approve-auth"> ' +
-          'I confirm I have the authority to approve this page.</label>' +
-        '<p class="dxf-approve-note">Your name, email, and the date &amp; time will be recorded as a record of this approval.</p>' +
+          escHtml(t('approve.authority', 'I confirm I have the authority to approve this page.')) + '</label>' +
+        '<p class="dxf-approve-note">' + escHtml(t('approve.recordNote', 'Your name, email, and the date & time will be recorded as a record of this approval.')) + '</p>' +
         '<div class="dxf-approve-actions">' +
-          '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-approve-cancel">Cancel</button>' +
-          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-approve-go" disabled>Approve page</button>' +
+          '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-approve-cancel">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-approve-go" disabled>' + escHtml(t('approve.button', 'Approve page')) + '</button>' +
         '</div>';
       hostEl.replaceWith(box);
 
@@ -1872,7 +1889,7 @@
       box.querySelector('#dxf-approve-cancel').addEventListener('click', renderFooter);
       go.addEventListener('click', function () {
         if (!chk.checked) return;
-        go.disabled = true; go.textContent = 'Saving…';
+        go.disabled = true; go.textContent = t('state.saving', 'Saving…');
         host.api.markComplete().then(function (d) {
           if (d.success) {
             cfg.completed = true;
@@ -1892,9 +1909,9 @@
             }
             renderFooter();
           } else {
-            go.disabled = false; go.textContent = 'Approve page';
+            go.disabled = false; go.textContent = t('approve.button', 'Approve page');
           }
-        }).catch(function () { go.disabled = false; go.textContent = 'Approve page'; });
+        }).catch(function () { go.disabled = false; go.textContent = t('approve.button', 'Approve page'); });
       });
     }
 
@@ -1909,24 +1926,24 @@
           '<div class="dxf-approval-banner-head">' +
             '<span class="dxf-approval-banner-icon">' + ICONS.check + '</span>' +
             '<div class="dxf-approval-banner-body">' +
-              '<div class="dxf-approval-banner-title">Page approved by ' + escHtml(a.name || 'Reviewer') + '</div>' +
+              '<div class="dxf-approval-banner-title">' + escHtml(t('approve.bannerTitle', 'Page approved by %s').replace('%s', a.name || t('role.reviewer', 'Reviewer'))) + '</div>' +
               '<div class="dxf-approval-banner-meta">' +
                 (a.email ? escHtml(a.email) : '') +
                 (when ? (a.email ? ' · ' : '') + escHtml(when) : '') +
               '</div>' +
             '</div>' +
           '</div>' +
-          '<button type="button" class="dxf-btn dxf-btn-ghost dxf-approval-revert">Revert approval</button>' +
+          '<button type="button" class="dxf-btn dxf-btn-ghost dxf-approval-revert">' + escHtml(t('approve.revert', 'Revert approval')) + '</button>' +
         '</div>';
       var rev = footer.querySelector('.dxf-approval-revert');
       if (rev) rev.addEventListener('click', function () {
         if (!host.api.unapprove) { return; }
-        if (!confirm('Revert this page back to unapproved? The original approval record is removed.')) return;
-        rev.disabled = true; rev.textContent = 'Reverting…';
+        if (!confirm(t('approve.revertConfirm', 'Revert this page back to unapproved? The original approval record is removed.'))) return;
+        rev.disabled = true; rev.textContent = t('approve.reverting', 'Reverting…');
         host.api.unapprove(cfg.postId).then(function (res) {
           if (res && res.success) { cfg.approvedBy = null; renderFooter(); }
-          else { rev.disabled = false; rev.textContent = 'Revert approval'; }
-        }).catch(function () { rev.disabled = false; rev.textContent = 'Revert approval'; });
+          else { rev.disabled = false; rev.textContent = t('approve.revert', 'Revert approval'); }
+        }).catch(function () { rev.disabled = false; rev.textContent = t('approve.revert', 'Revert approval'); });
       });
     }
 
@@ -1936,9 +1953,9 @@
     // Status metadata used by the foot pill + readout. Internal status keys
     // (open/in_progress/resolved) preserved; display labels are i18n-overridable.
     var STATUS_META = {
-      open:        { label: (cfg.i18n && cfg.i18n.open)       || 'Open',      dot: '#22c55e' },
-      in_progress: { label: (cfg.i18n && cfg.i18n.inProgress) || 'In review', dot: '#f59e0b' },
-      resolved:    { label: (cfg.i18n && cfg.i18n.resolved)   || 'Resolved',  dot: '#94a3b8' },
+      open:        { label: t('open',       'Open'),      dot: '#22c55e' },
+      in_progress: { label: t('inProgress', 'In review'), dot: '#f59e0b' },
+      resolved:    { label: t('resolved',   'Resolved'),  dot: '#94a3b8' },
     };
 
     // ── Graceful comment-card reconciliation ────────────────────────────────
@@ -2101,9 +2118,8 @@
         list.innerHTML =
           '<div class="dxf-approved-empty">' +
             '<div class="dxf-approved-empty-icon">' + ICONS.check + '</div>' +
-            '<p class="dxf-approved-empty-title">This page has been approved</p>' +
-            '<p class="dxf-approved-empty-body">New comments are closed because this page has been marked as approved. ' +
-              'If something\'s changed, ask the team to re-open the review.</p>' +
+            '<p class="dxf-approved-empty-title">' + escHtml(t('approvedEmpty.title', 'This page has been approved')) + '</p>' +
+            '<p class="dxf-approved-empty-body">' + escHtml(t('approvedEmpty.body', 'New comments are closed because this page has been marked as approved. If something\'s changed, ask the team to re-open the review.')) + '</p>' +
           '</div>';
         return;
       }
@@ -2125,7 +2141,13 @@
       var emptyEl = list.querySelector('.dxf-empty');
       if (!descriptors.length) {
         if (!emptyEl) { emptyEl = document.createElement('p'); emptyEl.className = 'dxf-empty'; list.appendChild(emptyEl); }
-        emptyEl.textContent = 'No ' + state.filter + ' comments' + (state.scope === 'all' ? ' site-wide' : '') + '.';
+        // "No <filter> comments<suffix>." — the filter word (open/resolved/…)
+        // and the optional " site-wide" suffix are each translatable, then
+        // composed into the sentence template so word order stays localizable.
+        var emptyFilter = t('empty.filter.' + state.filter, state.filter);
+        var emptySuffix = state.scope === 'all' ? t('empty.siteWideSuffix', ' site-wide') : '';
+        emptyEl.textContent = t('empty.noComments', 'No %s comments%s.')
+          .replace('%s', emptyFilter).replace('%s', emptySuffix);
       } else if (emptyEl) {
         emptyEl.parentNode.removeChild(emptyEl);
       }
@@ -2136,7 +2158,7 @@
     function renderStatusPill(comment) {
       var s = STATUS_META[comment.status] || STATUS_META.open;
       return (
-        '<button type="button" class="dxf-pill dxf-pill--status" data-pill="status" data-id="' + comment.id + '" title="Status">' +
+        '<button type="button" class="dxf-pill dxf-pill--status" data-pill="status" data-id="' + comment.id + '" title="' + escAttr(t('pill.status', 'Status')) + '">' +
           '<span class="dxf-pill-dot" style="background:' + s.dot + '"></span>' +
           '<span class="dxf-pill-label">' + escHtml(s.label) + '</span>' +
           '<span class="dxf-pill-chev">' + ICONS.chev + '</span>' +
@@ -2168,9 +2190,9 @@
         // Unassigned pills are an ACTION, not information — they hover-reveal
         // (CSS) so "Unassigned" isn't stamped on every card. Assigned ones
         // stay visible.
-        '<button type="button" class="dxf-pill dxf-pill--assign' + (assigned ? '' : ' is-unassigned') + '" data-pill="assign" data-id="' + comment.id + '" title="Assignee">' +
+        '<button type="button" class="dxf-pill dxf-pill--assign' + (assigned ? '' : ' is-unassigned') + '" data-pill="assign" data-id="' + comment.id + '" title="' + escAttr(t('pill.assignee', 'Assignee')) + '">' +
           leading +
-          '<span class="dxf-pill-label">' + escHtml(assigned ? assigned.name : 'Unassigned') + '</span>' +
+          '<span class="dxf-pill-label">' + escHtml(assigned ? assigned.name : t('unassigned', 'Unassigned')) + '</span>' +
           '<span class="dxf-pill-chev">' + ICONS.chev + '</span>' +
         '</button>'
       );
@@ -2207,7 +2229,7 @@
         var mine  = !!(r && r.mine);
         return '<button type="button" class="dxf-react' + (mine ? ' is-mine' : '') + (count ? ' has-count' : '') + '"' +
           ' data-id="' + comment.id + '" data-reaction="' + k + '"' +
-          ' aria-pressed="' + (mine ? 'true' : 'false') + '" title="React">' +
+          ' aria-pressed="' + (mine ? 'true' : 'false') + '" title="' + escAttr(t('react', 'React')) + '">' +
           reactionEmojiSpan(k) +
           (count ? '<span class="dxf-react-count">' + count + '</span>' : '') +
         '</button>';
@@ -2221,14 +2243,14 @@
       var composer = readOnly
         ? ''
         : '<div class="dxf-inline-reply" data-parent="' + comment.id + '">' +
-            '<textarea class="dxf-inline-reply-text" placeholder="Write a reply… (Enter to send)" rows="2"></textarea>' +
+            '<textarea class="dxf-inline-reply-text" placeholder="' + escAttr(t('reply.placeholder', 'Write a reply… (Enter to send)')) + '" rows="2"></textarea>' +
             '<div class="dxf-inline-reply-files"></div>' +
             '<div class="dxf-inline-reply-actions">' +
               (uploadsOff() ? '' :
                 '<input type="file" multiple hidden class="dxf-inline-reply-file">' +
-                '<button type="button" class="dxf-inline-reply-attach" title="Attach files" aria-label="Attach files">' + ICONS.attach + '</button>') +
-              '<button type="button" class="dxf-btn dxf-btn-ghost dxf-inline-reply-cancel" data-id="' + comment.id + '">Cancel</button>' +
-              '<button type="button" class="dxf-btn dxf-btn-primary dxf-inline-reply-submit" data-id="' + comment.id + '">Reply</button>' +
+                '<button type="button" class="dxf-inline-reply-attach" title="' + escAttr(t('form.attachFiles', 'Attach files')) + '" aria-label="' + escAttr(t('form.attachFiles', 'Attach files')) + '">' + ICONS.attach + '</button>') +
+              '<button type="button" class="dxf-btn dxf-btn-ghost dxf-inline-reply-cancel" data-id="' + comment.id + '">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+              '<button type="button" class="dxf-btn dxf-btn-primary dxf-inline-reply-submit" data-id="' + comment.id + '">' + escHtml(t('reply', 'Reply')) + '</button>' +
             '</div>' +
           '</div>';
       return (
@@ -2258,23 +2280,23 @@
       var isOwn        = !!(host.identity.name && comment.author_name === host.identity.name);
       var showDelete   = caps.canDelete && (!caps.canDeleteOwnOnly || isOwn);
       var canEdit      = !readOnly && isOwn && !!(host.api && host.api.editComment);
-      var fallback     = (caps.canApprove ? 'Reviewer' : 'Team member');
+      var fallback     = (caps.canApprove ? t('role.reviewer', 'Reviewer') : t('role.teamMember', 'Team member'));
       var authorDisp   = comment.author_name || fallback;
       var triageHot    = !!(anchor && anchor.triage &&
                             /^(high|urgent|critical)$/i.test(String(anchor.triage.priority || '')));
 
       var shot = (anchor && anchor.screenshot)
-        ? '<button type="button" class="dxf-shot-btn" data-shot="' + escAttr(anchor.screenshot) + '" title="View screenshot">' +
+        ? '<button type="button" class="dxf-shot-btn" data-shot="' + escAttr(anchor.screenshot) + '" title="' + escAttr(t('shot.view', 'View screenshot')) + '">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
               '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>' +
               '<circle cx="12" cy="13" r="4"/>' +
             '</svg>' +
-            '<span class="dxf-shot-btn-label">View screenshot</span>' +
+            '<span class="dxf-shot-btn-label">' + escHtml(t('shot.view', 'View screenshot')) + '</span>' +
           '</button>'
         : '';
       var pageTag = (state.scope === 'all' && comment.post_title)
         ? (canNavigate
-            ? '<a class="dxf-page-tag dxf-page-tag--nav" href="' + escAttr(comment.post_url) + '" title="Open in builder">' + escHtml(comment.post_title) + ' ↗</a>'
+            ? '<a class="dxf-page-tag dxf-page-tag--nav" href="' + escAttr(comment.post_url) + '" title="' + escAttr(t('page.openInBuilder', 'Open in builder')) + '">' + escHtml(comment.post_title) + ' ↗</a>'
             : '<span class="dxf-page-tag">' + escHtml(comment.post_title) + '</span>')
         : '';
 
@@ -2283,14 +2305,14 @@
       var actions =
         '<div class="dxf-comment-actions">' +
           (canEdit
-            ? '<button class="dxf-edit-btn" data-id="' + comment.id + '" title="Edit comment" aria-label="Edit comment">' + ICONS.pencil + '</button>'
+            ? '<button class="dxf-edit-btn" data-id="' + comment.id + '" title="' + escAttr(t('comment.edit', 'Edit comment')) + '" aria-label="' + escAttr(t('comment.edit', 'Edit comment')) + '">' + ICONS.pencil + '</button>'
             : '') +
           (showDelete
-            ? '<button class="dxf-delete-btn" data-id="' + comment.id + '" title="Delete comment" aria-label="Delete comment">' + ICONS.trash + '</button>'
+            ? '<button class="dxf-delete-btn" data-id="' + comment.id + '" title="' + escAttr(t('comment.delete', 'Delete comment')) + '" aria-label="' + escAttr(t('comment.delete', 'Delete comment')) + '">' + ICONS.trash + '</button>'
             : '') +
         '</div>';
       var numPillStatus = isResolved ? ' is-resolved' : (isInProgress ? ' is-progress' : '');
-      var numPill = num ? '<span class="dxf-num-pill' + numPillStatus + '" title="Comment #' + num + '">' + num + '</span>' : '';
+      var numPill = num ? '<span class="dxf-num-pill' + numPillStatus + '" title="' + escAttr(t('comment.numberTitle', 'Comment #%d').replace('%d', num)) + '">' + num + '</span>' : '';
 
       // Per-comment "Assign to Review" — only shown when this comment isn't
       // attached to any Review AND the viewer can pick reviews (editors).
@@ -2300,9 +2322,9 @@
       var unassignedToReview = caps.canPickReview && !(+comment.review_id) &&
                                !!(cfg.reviews && cfg.reviews.length);
       var assignReviewBtn = unassignedToReview
-        ? '<button type="button" class="dxf-comment-review-pick" data-pill="comment-review" data-id="' + comment.id + '" title="Assign to a Review" aria-label="Assign to a Review">' +
+        ? '<button type="button" class="dxf-comment-review-pick" data-pill="comment-review" data-id="' + comment.id + '" title="' + escAttr(t('review.assignTo', 'Assign to a Review')) + '" aria-label="' + escAttr(t('review.assignTo', 'Assign to a Review')) + '">' +
             ICONS.commentIcon +
-            '<span class="dxf-comment-review-pick-label">Assign</span>' +
+            '<span class="dxf-comment-review-pick-label">' + escHtml(t('review.assign', 'Assign')) + '</span>' +
           '</button>'
         : '';
 
@@ -2327,7 +2349,7 @@
           ((triageHot || orphaned)
             ? '<div class="dxf-comment-toprow">' +
                 (triageHot ? renderTriage(anchor.triage) : '') +
-                (orphaned ? '<span class="dxf-orphaned-tag">' + escHtml((cfg.i18n && cfg.i18n.orphaned) || 'Element removed') + '</span>' : '') +
+                (orphaned ? '<span class="dxf-orphaned-tag">' + escHtml(t('orphaned', 'Element removed')) + '</span>' : '') +
               '</div>'
             : '') +
           // ── Header ──
@@ -2335,7 +2357,7 @@
             '<span class="dxf-avatar" style="background:' + escAttr(uc) + '">' + toInitials(authorDisp) + '</span>' +
             '<div class="dxf-comment-meta">' +
               '<span class="dxf-author">' + escHtml(authorDisp) + '</span>' +
-              '<span class="dxf-time">' + (comment._pending ? 'Sending…' : timeAgo(comment.created_at)) + '</span>' +
+              '<span class="dxf-time">' + (comment._pending ? escHtml(t('state.sending', 'Sending…')) : timeAgo(comment.created_at)) + '</span>' +
             '</div>' +
             actions + assignReviewBtn + numPill +
           '</div>' +
@@ -2367,13 +2389,13 @@
               // surfaces keep a count-only toggle since they can't reply.
               (readOnly
                 ? (replies.length
-                    ? '<button class="dxf-thread-toggle' + (expanded ? ' is-active' : '') + '" data-id="' + comment.id + '" title="' + (expanded ? 'Hide thread' : 'Show thread') + '">' + ICONS.commentIcon + '<span>' + replies.length + ' ' + (replies.length > 1 ? 'replies' : 'reply') + '</span></button>'
+                    ? '<button class="dxf-thread-toggle' + (expanded ? ' is-active' : '') + '" data-id="' + comment.id + '" title="' + escAttr(expanded ? t('thread.hide', 'Hide thread') : t('thread.show', 'Show thread')) + '">' + ICONS.commentIcon + '<span>' + escHtml((replies.length === 1 ? t('thread.replyOne', '%d reply') : t('thread.replyMany', '%d replies')).replace('%d', replies.length)) + '</span></button>'
                     : '')
-                : '<button class="dxf-reply-open' + (expanded ? ' is-active' : '') + '" data-id="' + comment.id + '" title="' + (expanded ? 'Hide thread' : (replies.length ? 'Show thread & reply' : 'Reply')) + '">Reply' +
+                : '<button class="dxf-reply-open' + (expanded ? ' is-active' : '') + '" data-id="' + comment.id + '" title="' + escAttr(expanded ? t('thread.hide', 'Hide thread') : (replies.length ? t('thread.showReply', 'Show thread & reply') : t('reply', 'Reply'))) + '">' + escHtml(t('reply', 'Reply')) +
                     (replies.length ? '<span class="dxf-reply-count">' + replies.length + '</span>' : '') +
                   '</button>') +
               (caps.canResolve
-                ? '<button class="dxf-resolve-btn dxf-resolve-text' + (isResolved ? ' is-resolved' : '') + '" data-id="' + comment.id + '" data-status="' + comment.status + '" title="' + (isResolved ? 'Reopen this comment' : 'Mark as resolved') + '" aria-label="' + (isResolved ? 'Reopen this comment' : 'Mark as resolved') + '">' + ICONS.check + '</button>'
+                ? '<button class="dxf-resolve-btn dxf-resolve-text' + (isResolved ? ' is-resolved' : '') + '" data-id="' + comment.id + '" data-status="' + comment.status + '" title="' + escAttr(isResolved ? t('resolve.reopen', 'Reopen this comment') : t('resolve.mark', 'Mark as resolved')) + '" aria-label="' + escAttr(isResolved ? t('resolve.reopen', 'Reopen this comment') : t('resolve.mark', 'Mark as resolved')) + '">' + ICONS.check + '</button>'
                 : '') +
             '</div>' +
           '</div>' +
@@ -2413,8 +2435,8 @@
       form.innerHTML =
         '<textarea class="dxf-edit-text" rows="3"></textarea>' +
         '<div class="dxf-edit-actions">' +
-          '<button type="button" class="dxf-btn dxf-btn-ghost dxf-edit-cancel">Cancel</button>' +
-          '<button type="button" class="dxf-btn dxf-btn-primary dxf-edit-save">Save</button>' +
+          '<button type="button" class="dxf-btn dxf-btn-ghost dxf-edit-cancel">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+          '<button type="button" class="dxf-btn dxf-btn-primary dxf-edit-save">' + escHtml(t('action.save', 'Save')) + '</button>' +
         '</div>';
       // Keep clicks inside the editor from bubbling to the card (locate/scroll).
       form.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -2440,7 +2462,7 @@
         var val = ta.value.trim();
         if (!val) { ta.focus(); return; }
         if (val === (comment.body || '')) { cleanup(); return; }
-        save.disabled = true; save.textContent = 'Saving…';
+        save.disabled = true; save.textContent = t('state.saving', 'Saving…');
         host.api.editComment(id, val).then(function (r) {
           if (r && r.success) {
             comment.body = val;
@@ -2449,9 +2471,9 @@
             }
             renderCommentList();
           } else {
-            save.disabled = false; save.textContent = 'Save';
+            save.disabled = false; save.textContent = t('action.save', 'Save');
           }
-        }).catch(function () { save.disabled = false; save.textContent = 'Save'; });
+        }).catch(function () { save.disabled = false; save.textContent = t('action.save', 'Save'); });
       };
       save.addEventListener('click', doSave);
       cancel.addEventListener('click', cleanup);
@@ -2586,7 +2608,7 @@
           pillsHost.innerHTML = form._pendingFiles.map(function (f, i) {
             return '<div class="dxf-file-pill">' +
               '<span title="' + escAttr(f.name) + '">' + escHtml(formatFileName(f.name)) + '</span>' +
-              '<button type="button" class="dxf-file-remove" data-idx="' + i + '" aria-label="Remove file">&times;</button>' +
+              '<button type="button" class="dxf-file-remove" data-idx="' + i + '" aria-label="' + escAttr(t('file.remove', 'Remove file')) + '">&times;</button>' +
             '</div>';
           }).join('');
           pillsHost.querySelectorAll('.dxf-file-remove').forEach(function (rb) {
@@ -2606,7 +2628,7 @@
         var doSubmit = function () {
           var body = ta.value.trim();
           if (!body && !form._pendingFiles.length) return;
-          submit.disabled = true; submit.textContent = 'Saving…';
+          submit.disabled = true; submit.textContent = t('state.saving', 'Saving…');
           host.api.addComment({
             post_id: cfg.postId, element_id: '', parent_id: parentId,
             body: body, anchor_data: {},
@@ -2617,9 +2639,9 @@
               form._pendingFiles = [];
               refreshComments();
             } else {
-              submit.disabled = false; submit.textContent = 'Reply';
+              submit.disabled = false; submit.textContent = t('reply', 'Reply');
             }
-          }).catch(function () { submit.disabled = false; submit.textContent = 'Reply'; });
+          }).catch(function () { submit.disabled = false; submit.textContent = t('reply', 'Reply'); });
         };
         submit.addEventListener('click', doSubmit);
         cancel.addEventListener('click', function () {
@@ -2666,11 +2688,11 @@
         list.querySelectorAll('.dxf-file-media').forEach(function (btn) {
           if (btn._rvBound) return; btn._rvBound = true;
           btn.addEventListener('click', function () {
-            btn.disabled = true; btn.textContent = 'Adding…';
+            btn.disabled = true; btn.textContent = t('state.adding', 'Adding…');
             host.api.importToMedia(btn.dataset.url).then(function (res) {
-              btn.textContent = (res && res.success) ? '✓ Added' : 'Failed';
+              btn.textContent = (res && res.success) ? t('media.added', '✓ Added') : t('state.failed', 'Failed');
               if (!res || !res.success) btn.disabled = false;
-            }).catch(function () { btn.disabled = false; btn.textContent = 'Failed'; });
+            }).catch(function () { btn.disabled = false; btn.textContent = t('state.failed', 'Failed'); });
           });
         });
       }
@@ -2718,7 +2740,7 @@
       if (!comment) return;
       var members = cfg.assignees || [];
       var assignedId = comment.assignee_id || 0;
-      var items = [{ id: 0, label: (cfg.i18n && cfg.i18n.unassigned) || 'Unassigned', icon: ICONS.userIcon, selected: !assignedId }];
+      var items = [{ id: 0, label: t('unassigned', 'Unassigned'), icon: ICONS.userIcon, selected: !assignedId }];
       members.forEach(function (u) {
         items.push({
           id: u.id,
@@ -2750,7 +2772,7 @@
     function openReviewSwitchPopover(trigger) {
       var list = (cfg.review && cfg.review.switchable) || [];
       var items = list.map(function (s) {
-        return { id: s.slug, label: s.name || '(untitled review)', selected: !!s.current, _url: s.landingUrl };
+        return { id: s.slug, label: s.name || t('review.untitled', '(untitled review)'), selected: !!s.current, _url: s.landingUrl };
       });
       openPopover(trigger, items, function (item) {
         if (item._url && !item.selected) { window.location.href = item._url; }
@@ -2759,10 +2781,10 @@
     function openDevicePopover(trigger) {
       var counts = deviceCounts();
       var defs = [
-        { id: 'all',     label: 'All devices' },
-        { id: 'desktop', label: 'Desktop'     },
-        { id: 'tablet',  label: 'Tablet'      },
-        { id: 'mobile',  label: 'Mobile'      },
+        { id: 'all',     label: t('device.all',     'All devices') },
+        { id: 'desktop', label: t('device.desktop', 'Desktop')     },
+        { id: 'tablet',  label: t('device.tablet',  'Tablet')      },
+        { id: 'mobile',  label: t('device.mobile',  'Mobile')      },
       ];
       var items = defs.map(function (d) {
         return { id: d.id, label: d.label, count: counts[d.id] || 0, selected: state.deviceFilter === d.id };
@@ -2770,13 +2792,13 @@
       openPopover(trigger, items, function (item) { setDeviceFilter(item.id); });
     }
     function reviewFilterLabel() {
-      if (state.reviewFilter === 'all')  return 'All Reviews';
-      if (state.reviewFilter === 'none') return 'Outside any Review';
+      if (state.reviewFilter === 'all')  return t('review.all', 'All Reviews');
+      if (state.reviewFilter === 'none') return t('review.outside', 'Outside any Review');
       var list = cfg.reviews || [];
       for (var i = 0; i < list.length; i++) {
-        if (String(list[i].id) === String(state.reviewFilter)) return list[i].name || ('Review #' + list[i].id);
+        if (String(list[i].id) === String(state.reviewFilter)) return list[i].name || t('review.numbered', 'Review #%d').replace('%d', list[i].id);
       }
-      return 'All Reviews';
+      return t('review.all', 'All Reviews');
     }
     function reviewCounts() {
       // Counts of top-level comments per Review id (string keys), plus
@@ -2795,22 +2817,22 @@
     }
     function openReviewPopover(trigger) {
       var counts = reviewCounts();
-      var items = [{ id: 'all', label: 'All Reviews', count: counts.all || 0, selected: state.reviewFilter === 'all' }];
+      var items = [{ id: 'all', label: t('review.all', 'All Reviews'), count: counts.all || 0, selected: state.reviewFilter === 'all' }];
       var list  = cfg.reviews || [];
       for (var i = 0; i < list.length; i++) {
         var id = String(list[i].id);
         items.push({
           id: id,
-          label: list[i].name || ('Review #' + list[i].id),
+          label: list[i].name || t('review.numbered', 'Review #%d').replace('%d', list[i].id),
           count: counts[id] || 0,
           selected: String(state.reviewFilter) === id,
         });
       }
-      items.push({ id: 'none', label: 'Outside any Review', count: counts.none || 0, selected: state.reviewFilter === 'none' });
+      items.push({ id: 'none', label: t('review.outside', 'Outside any Review'), count: counts.none || 0, selected: state.reviewFilter === 'none' });
       // "New Review" lives at the bottom of this dropdown (it used to be a
       // separate "+" button, which crowded the row and read ambiguously).
       if (cfg.newReviewUrl) {
-        items.push({ id: '__new__', label: '+ New Review', action: true, selected: false });
+        items.push({ id: '__new__', label: t('review.new', '+ New Review'), action: true, selected: false });
       }
       openPopover(trigger, items, function (item) {
         if (item.id === '__new__') {
@@ -2842,12 +2864,12 @@
       for (var i = 0; i < list.length; i++) {
         items.push({
           id: String(list[i].id),
-          label: list[i].name || ('Review #' + list[i].id),
+          label: list[i].name || t('review.numbered', 'Review #%d').replace('%d', list[i].id),
           selected: false,
         });
       }
       if (!items.length) {
-        items.push({ id: '__none__', label: 'No active reviews', selected: false });
+        items.push({ id: '__none__', label: t('review.noneActive', 'No active reviews'), selected: false });
       }
       openPopover(trigger, items, function (item) {
         if (item.id === '__none__') return;
@@ -2855,7 +2877,7 @@
           if (res && res.success) {
             refreshComments();
           } else {
-            var msg = (res && res.data && res.data.message) || 'Could not assign comment.';
+            var msg = (res && res.data && res.data.message) || t('review.assignFailed', 'Could not assign comment.');
             try { window.alert(msg); } catch (e) {}
           }
         });
@@ -2871,12 +2893,12 @@
       })[0];
       if (!latest) return '';
       var ruc  = userColor(latest);
-      var name = escHtml(latest.author_name || (caps.canApprove ? 'Reviewer' : 'Team member'));
+      var name = escHtml(latest.author_name || (caps.canApprove ? t('role.reviewer', 'Reviewer') : t('role.teamMember', 'Team member')));
       var body = String(latest.body || '').replace(/\s+/g, ' ').trim();
       if (body.length > 110) body = body.slice(0, 107) + '…';
       var n    = replies.length;
-      var more = n > 1 ? '<span class="dxf-reply-peek-more">+' + (n - 1) + ' more</span>' : '';
-      return '<button type="button" class="dxf-reply-peek" data-id="' + parentId + '" title="Show thread"' +
+      var more = n > 1 ? '<span class="dxf-reply-peek-more">' + escHtml(t('reply.peekMore', '+%d more').replace('%d', (n - 1))) + '</span>' : '';
+      return '<button type="button" class="dxf-reply-peek" data-id="' + parentId + '" title="' + escAttr(t('thread.show', 'Show thread')) + '"' +
         ' style="--rv-reply-user:' + escAttr(ruc) + '">' +
         '<span class="dxf-avatar dxf-avatar--sm" style="background:' + escAttr(ruc) + '">' + toInitials(latest.author_name) + '</span>' +
         '<span class="dxf-reply-peek-text">' +
@@ -2894,7 +2916,7 @@
           var ruc    = userColor(r);
           return '<div class="dxf-reply">' +
             '<span class="dxf-avatar dxf-avatar--sm" style="background:' + escAttr(ruc) + '">' + toInitials(r.author_name) + '</span>' +
-            '<div><strong style="color:' + escAttr(ruc) + '">' + escHtml(r.author_name || (caps.canApprove ? 'Reviewer' : 'Team member')) + '</strong>' +
+            '<div><strong style="color:' + escAttr(ruc) + '">' + escHtml(r.author_name || (caps.canApprove ? t('role.reviewer', 'Reviewer') : t('role.teamMember', 'Team member'))) + '</strong>' +
             '<span class="dxf-time">' + timeAgo(r.created_at) + '</span>' +
             '<p>' + linkify(r.body) + '</p>' +
             (anchor ? renderAttachments(anchor.attachments) : '') +
@@ -2914,7 +2936,7 @@
       var errs = (ctx.errors && ctx.errors.length)
         ? '<span class="dxf-ctx-err" title="' + escAttr(ctx.errors.map(function (e) {
               return (e.msg || '') + (e.src ? ' (' + e.src + ':' + (e.line || 0) + ')' : '');
-            }).join('\n')) + '">⚠ ' + ctx.errors.length + ' JS error' + (ctx.errors.length > 1 ? 's' : '') + '</span>'
+            }).join('\n')) + '">' + escHtml((ctx.errors.length === 1 ? t('error.jsOne', '⚠ %d JS error') : t('error.jsMany', '⚠ %d JS errors')).replace('%d', ctx.errors.length)) + '</span>'
         : '';
       if (!meta && !errs) return '';
       return '<div class="dxf-ctx" title="' + escAttr(ctx.ua || '') + '">' +
@@ -2926,14 +2948,14 @@
       return '<div class="dxf-attachments">' + list.map(function (a) {
         if (!a || !a.url) return '';
         if (/^image\//.test(a.mime || '')) {
-          return '<a class="dxf-shot dxf-attach-img" href="' + escAttr(a.url) + '" data-shot="' + escAttr(a.url) + '" title="' + escAttr(a.name || 'Image') + '">' +
-            '<img src="' + escAttr(a.url) + '" alt="' + escAttr(a.name || 'Attachment') + '" loading="lazy"></a>';
+          return '<a class="dxf-shot dxf-attach-img" href="' + escAttr(a.url) + '" data-shot="' + escAttr(a.url) + '" title="' + escAttr(a.name || t('attach.image', 'Image')) + '">' +
+            '<img src="' + escAttr(a.url) + '" alt="' + escAttr(a.name || t('attach.attachment', 'Attachment')) + '" loading="lazy"></a>';
         }
         return '<div class="dxf-file">' +
           '<a class="dxf-file-link" href="' + escAttr(a.url) + '" target="_blank" rel="noopener noreferrer">' +
-            ICONS.file + '<span>' + escHtml(a.name || 'File') + '</span>' +
+            ICONS.file + '<span>' + escHtml(a.name || t('attach.file', 'File')) + '</span>' +
           '</a>' +
-          (caps.canImportMedia ? '<button type="button" class="dxf-file-media" data-url="' + escAttr(a.url) + '" title="Add to Media Library">+ Media</button>' : '') +
+          (caps.canImportMedia ? '<button type="button" class="dxf-file-media" data-url="' + escAttr(a.url) + '" title="' + escAttr(t('media.addToLibrary', 'Add to Media Library')) + '">' + escHtml(t('media.addShort', '+ Media')) + '</button>' : '') +
         '</div>';
       }).join('') + '</div>';
     }
@@ -2950,13 +2972,13 @@
       form._pendingFiles = [];
       form.className = 'dxf-inline-reply';
       form.innerHTML =
-        '<textarea placeholder="Write a reply… (Enter to send)" rows="2"></textarea>' +
+        '<textarea placeholder="' + escAttr(t('reply.placeholder', 'Write a reply… (Enter to send)')) + '" rows="2"></textarea>' +
         '<div class="dxf-inline-reply-actions">' +
           (uploadsOff() ? '' :
             '<input type="file" class="dxf-file-input" multiple hidden>' +
             '<button type="button" class="dxf-btn dxf-btn-ghost dxf-attach-btn">' + ICONS.attach + '</button>') +
-          '<button class="dxf-btn dxf-btn-ghost dxf-cancel-reply">Cancel</button>' +
-          '<button class="dxf-btn dxf-btn-primary dxf-submit-reply">Reply</button>' +
+          '<button class="dxf-btn dxf-btn-ghost dxf-cancel-reply">' + escHtml(t('action.cancel', 'Cancel')) + '</button>' +
+          '<button class="dxf-btn dxf-btn-primary dxf-submit-reply">' + escHtml(t('reply', 'Reply')) + '</button>' +
         '</div>' +
         '<div class="dxf-file-list"></div>';
       triggerBtn.after(form);
@@ -2978,13 +3000,13 @@
         var body = form.querySelector('textarea').value.trim();
         if (!body) return;
         var btn = form.querySelector('.dxf-submit-reply');
-        btn.disabled = true; btn.textContent = 'Saving…';
+        btn.disabled = true; btn.textContent = t('state.saving', 'Saving…');
         host.api.addComment({
           post_id: cfg.postId, element_id: '', parent_id: parentId, body: body, anchor_data: {},
           _files: form._pendingFiles && form._pendingFiles.length ? form._pendingFiles : null,
         }).then(function (r) {
           if (r.success) { form.remove(); refreshComments(); }
-          else { btn.disabled = false; btn.textContent = 'Reply'; }
+          else { btn.disabled = false; btn.textContent = t('reply', 'Reply'); }
         });
       };
       form.querySelector('.dxf-submit-reply').addEventListener('click', doSubmit);
@@ -3460,8 +3482,8 @@
       state.deviceFilter = value;
       var trig = document.querySelector('#dxf-sidebar .dxf-device-drop .dxf-dropdown-label');
       if (trig) {
-        var labelMap = { all: 'All devices', desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' };
-        trig.textContent = labelMap[value] || 'All devices';
+        var labelMap = { all: t('device.all', 'All devices'), desktop: t('device.desktop', 'Desktop'), tablet: t('device.tablet', 'Tablet'), mobile: t('device.mobile', 'Mobile') };
+        trig.textContent = labelMap[value] || t('device.all', 'All devices');
       }
       // Picking a specific device also resizes the canvas to match (so the
       // layout matches what the commenter saw). 'all' restores desktop width.
@@ -3497,7 +3519,7 @@
           // The popover lists the viewer's reviews; selecting one navigates.
           bar.innerHTML =
             '<button type="button" class="dxf-dropdown dxf-review-drop" data-pill="review-switch">' +
-              '<span class="dxf-dropdown-label">' + escHtml(reviewName || '(untitled review)') + '</span>' +
+              '<span class="dxf-dropdown-label">' + escHtml(reviewName || t('review.untitled', '(untitled review)')) + '</span>' +
               '<span class="dxf-dropdown-chev">' + ICONS.chev + '</span>' +
             '</button>';
         } else if (reviewName) {
@@ -3550,11 +3572,11 @@
           summaryCacheData = res.data;
           renderSummaryModal(res.data);
         } else {
-          renderSummaryModal({ error: (res && res.data && res.data.message) || 'Could not summarize.' });
+          renderSummaryModal({ error: (res && res.data && res.data.message) || t('ai.summarizeFailed', 'Could not summarize.') });
         }
       }).catch(function () {
         restore();
-        renderSummaryModal({ error: 'Network error. Please try again.' });
+        renderSummaryModal({ error: t('error.network', 'Network error. Please try again.') });
       });
     }
 
@@ -3565,10 +3587,10 @@
       if (data.error) {
         inner =
           '<p class="dxf-summary-overview">' +
-            '<strong>Summarize failed.</strong> ' + escHtml(data.error) +
+            '<strong>' + escHtml(t('ai.failedTitle', 'Summarize failed.')) + '</strong> ' + escHtml(data.error) +
           '</p>' +
           '<p class="dxf-summary-overview" style="opacity:.65;font-size:12px;">' +
-            'If the message names a model id, the AI provider rejected it — update the model under Dox Feedback → AI.' +
+            escHtml(t('ai.modelHint', 'If the message names a model id, the AI provider rejected it — update the model under Dox Feedback → AI.')) +
           '</p>';
       } else {
         var themes = (data.themes || []).map(function (t) {
@@ -3585,8 +3607,8 @@
       modal.id = 'dxf-summary';
       modal.innerHTML =
         '<div class="dxf-summary-inner">' +
-          '<div class="dxf-summary-head"><span>Feedback summary</span>' +
-            '<button class="dxf-summary-close" aria-label="Close">' + ICONS.close + '</button></div>' +
+          '<div class="dxf-summary-head"><span>' + escHtml(t('ai.summaryTitle', 'Feedback summary')) + '</span>' +
+            '<button class="dxf-summary-close" aria-label="' + escAttr(t('action.close', 'Close')) + '">' + ICONS.close + '</button></div>' +
           inner +
         '</div>';
       modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
@@ -3604,9 +3626,9 @@
         lb = document.createElement('div');
         lb.id = 'dxf-lightbox';
         lb.setAttribute('data-lenis-prevent', '');
-        var inner = '<div class="dxf-lightbox-inner"><img alt="Screenshot">';
+        var inner = '<div class="dxf-lightbox-inner"><img alt="' + escAttr(t('shot.label', 'Screenshot')) + '">';
         if (caps.canImportMedia) {
-          inner += '<div class="dxf-lightbox-bar"><button type="button" class="dxf-btn dxf-btn-primary dxf-lb-media">Add to Media Library</button></div>';
+          inner += '<div class="dxf-lightbox-bar"><button type="button" class="dxf-btn dxf-btn-primary dxf-lb-media">' + escHtml(t('media.addToLibrary', 'Add to Media Library')) + '</button></div>';
         }
         inner += '</div>';
         lb.innerHTML = inner;
@@ -3615,18 +3637,18 @@
         if (mediaBtn) {
           mediaBtn.addEventListener('click', function () {
             var current = lb.querySelector('img').src;
-            mediaBtn.disabled = true; mediaBtn.textContent = 'Adding…';
+            mediaBtn.disabled = true; mediaBtn.textContent = t('state.adding', 'Adding…');
             host.api.importToMedia(current).then(function (res) {
-              if (res && res.success) { mediaBtn.textContent = '✓ Added to Media Library'; }
-              else { mediaBtn.disabled = false; mediaBtn.textContent = (res && res.data && res.data.message) || 'Failed — try again'; }
-            }).catch(function () { mediaBtn.disabled = false; mediaBtn.textContent = 'Failed — try again'; });
+              if (res && res.success) { mediaBtn.textContent = t('media.addedToLibrary', '✓ Added to Media Library'); }
+              else { mediaBtn.disabled = false; mediaBtn.textContent = (res && res.data && res.data.message) || t('media.failedRetry', 'Failed — try again'); }
+            }).catch(function () { mediaBtn.disabled = false; mediaBtn.textContent = t('media.failedRetry', 'Failed — try again'); });
           });
         }
         document.body.appendChild(lb);
       }
       lb.querySelector('img').src = url;
       var btn = lb.querySelector('.dxf-lb-media');
-      if (btn) { btn.disabled = false; btn.textContent = 'Add to Media Library'; }
+      if (btn) { btn.disabled = false; btn.textContent = t('media.addToLibrary', 'Add to Media Library'); }
       lb.classList.remove('hidden');
     }
 
