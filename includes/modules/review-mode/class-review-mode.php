@@ -144,6 +144,17 @@ class DXF_Review_Mode {
                 'noPage'        => __('Navigate to a page to manage its review link.', 'dox-feedback'),
                 'error'         => __('Something went wrong.', 'dox-feedback'),
                 'revokeConfirm' => __('Revoke this review link? Clients with the current URL will lose access.', 'dox-feedback'),
+                // review-admin.js reads these (rva.*) keys
+                'rva.copied'         => __('Copied!', 'dox-feedback'),
+                'rva.no_page'        => __('Navigate to a page to manage its review link.', 'dox-feedback'),
+                'rva.active_link'    => __('Active review link:', 'dox-feedback'),
+                'rva.copy'           => __('Copy', 'dox-feedback'),
+                'rva.revoke_link'    => __('Revoke link', 'dox-feedback'),
+                'rva.no_link'        => __('No active review link.', 'dox-feedback'),
+                'rva.generate_link'  => __('Generate review link', 'dox-feedback'),
+                'rva.generating'     => __('Generating…', 'dox-feedback'),
+                'rva.revoke_confirm' => __('Revoke this review link? Clients with the current URL will lose access.', 'dox-feedback'),
+                'rva.revoking'       => __('Revoking…', 'dox-feedback'),
             ],
         ]);
     }

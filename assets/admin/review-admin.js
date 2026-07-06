@@ -13,6 +13,9 @@
   var cfg = window.dxfReviewAdmin;
   if ( ! cfg ) return;
 
+  var I18N = (window.dxfReviewAdmin && window.dxfReviewAdmin.i18n) || {};
+  function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+
   function escHtml(str) {
     return String(str || '')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -53,7 +56,7 @@
   function copyToClipboard( text, $btn ) {
     if ( navigator.clipboard && navigator.clipboard.writeText ) {
       navigator.clipboard.writeText(text).then(function () {
-        flashBtn($btn, cfg.i18n.copied, 1600);
+        flashBtn($btn, t('rva.copied', 'Copied!'), 1600);
       }).catch(function () { legacyCopy(text, $btn); });
     } else {
       legacyCopy(text, $btn);
@@ -64,7 +67,7 @@
     var $tmp = $('<textarea>').val(text).appendTo('body').select();
     try {
       document.execCommand('copy');
-      flashBtn($btn, cfg.i18n.copied, 1600);
+      flashBtn($btn, t('rva.copied', 'Copied!'), 1600);
     } catch (e) { /* silently fail */ }
     $tmp.remove();
   }
@@ -80,40 +83,40 @@
     if ( ! $box.length ) return;
 
     if ( ! cfg.postId ) {
-      $box.html('<p class="description">' + cfg.i18n.noPage + '</p>');
+      $box.html('<p class="description">' + escHtml(t('rva.no_page', 'Navigate to a page to manage its review link.')) + '</p>');
       return;
     }
 
     if ( cfg.reviewUrl ) {
       $box.html(
-        '<p><strong>' + escHtml(cfg.i18n.activeLink) + '</strong><br>'
+        '<p><strong>' + escHtml(t('rva.active_link', 'Active review link:')) + '</strong><br>'
         + '<input type="text" readonly class="widefat" value="' + escHtml(cfg.reviewUrl) + '" style="margin-top:4px;"></p>'
         + '<p style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">'
-        + '<button type="button" class="button" id="dxf-copy-link">Copy</button>'
-        + '<button type="button" class="button button-small dxf-danger-btn" id="dxf-revoke-link">Revoke link</button>'
+        + '<button type="button" class="button" id="dxf-copy-link">' + escHtml(t('rva.copy', 'Copy')) + '</button>'
+        + '<button type="button" class="button button-small dxf-danger-btn" id="dxf-revoke-link">' + escHtml(t('rva.revoke_link', 'Revoke link')) + '</button>'
         + '</p>'
       );
     } else {
       $box.html(
-        '<p style="color:#666;">' + escHtml(cfg.i18n.noLink) + '</p>'
-        + '<button type="button" class="button button-primary" id="dxf-generate-link">Generate review link</button>'
+        '<p style="color:#666;">' + escHtml(t('rva.no_link', 'No active review link.')) + '</p>'
+        + '<button type="button" class="button button-primary" id="dxf-generate-link">' + escHtml(t('rva.generate_link', 'Generate review link')) + '</button>'
       );
     }
 
     $box.find('#dxf-generate-link').on('click', function () {
-      var $btn = $(this).prop('disabled', true).text(cfg.i18n.generating);
+      var $btn = $(this).prop('disabled', true).text(t('rva.generating', 'Generating…'));
       generateLink(function (ok) {
         if ( ok ) renderMetaBox();
-        else $btn.prop('disabled', false).text('Generate review link');
+        else $btn.prop('disabled', false).text(t('rva.generate_link', 'Generate review link'));
       });
     });
 
     $box.find('#dxf-revoke-link').on('click', function () {
-      if ( ! confirm(cfg.i18n.revokeConfirm) ) return;
-      var $btn = $(this).prop('disabled', true).text(cfg.i18n.revoking);
+      if ( ! confirm(t('rva.revoke_confirm', 'Revoke this review link? Clients with the current URL will lose access.')) ) return;
+      var $btn = $(this).prop('disabled', true).text(t('rva.revoking', 'Revoking…'));
       revokeLink(function (ok) {
         if ( ok ) renderMetaBox();
-        else $btn.prop('disabled', false).text('Revoke link');
+        else $btn.prop('disabled', false).text(t('rva.revoke_link', 'Revoke link'));
       });
     });
 

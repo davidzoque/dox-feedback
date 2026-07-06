@@ -3,7 +3,8 @@
   'use strict';
 
   var cfg = window.dxfPins || {};
-  var i18n = cfg.i18n || {};
+  var I18N = (window.dxfPins && window.dxfPins.i18n) || {};
+  function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
 
   // Mark a comment resolved / reopened via the shared resolve endpoint.
   $(document).on('click', '.dxf-pin-toggle', function () {
@@ -22,7 +23,7 @@
       status: status
     }).done(function (res) {
       if (!res || !res.success) {
-        window.alert((res && res.data && res.data.message) || i18n.error || 'Error');
+        window.alert((res && res.data && res.data.message) || t('pin.error', 'Error'));
         $btn.prop('disabled', false).removeClass('is-busy');
         return;
       }
@@ -30,12 +31,12 @@
       // Flip the card + button to reflect the new state.
       $card.removeClass('status-open status-in_progress status-resolved')
            .addClass(resolved ? 'status-resolved' : 'status-open');
-      $card.find('.dxf-pin-status-label').text(resolved ? (i18n.resolved || 'Resolved') : i18n.open || 'Open');
+      $card.find('.dxf-pin-status-label').text(resolved ? t('pin.resolved', 'Resolved') : t('pin.open', 'Open'));
       $btn.data('status', resolved ? 'open' : 'resolved')
-          .text(resolved ? (i18n.reopen || 'Reopen') : (i18n.resolve || 'Mark resolved'))
+          .text(resolved ? t('pin.reopen', 'Reopen') : t('pin.resolve', 'Mark resolved'))
           .prop('disabled', false).removeClass('is-busy');
     }).fail(function () {
-      window.alert(i18n.error || 'Error');
+      window.alert(t('pin.error', 'Error'));
       $btn.prop('disabled', false).removeClass('is-busy');
     });
   });

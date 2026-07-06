@@ -3,6 +3,8 @@
    window.dxfSettings. Each block bails quietly when its UI is absent. */
 (function () {
     var cfg = window.dxfSettings || {};
+    var I18N = (window.dxfSettings && window.dxfSettings.i18n) || {};
+    function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
 
     // --- Dev tools: dummy-content seeder (non-production screens only) -------
     (function () {
@@ -12,8 +14,8 @@
         function runSeed(btn, action) {
             var postId = document.getElementById('dxf-seed-post').value;
             var count  = document.getElementById('dxf-seed-count').value;
-            if (!postId) { result.textContent = 'Enter a post or page ID first.'; result.style.color = '#b32d2e'; return; }
-            btn.disabled = true; result.textContent = 'Seeding…'; result.style.color = '';
+            if (!postId) { result.textContent = t('set.seed_need_id', 'Enter a post or page ID first.'); result.style.color = '#b32d2e'; return; }
+            btn.disabled = true; result.textContent = t('set.seeding', 'Seeding…'); result.style.color = '';
             var fd = new FormData();
             fd.append('action', action);
             fd.append('_wpnonce', cfg.seedNonce);
@@ -24,7 +26,7 @@
               .then(function (d) {
                   btn.disabled = false;
                   if (d && d.success) {
-                      var msg = (d.data && d.data.message) || ('Seeded ' + (d.data && d.data.inserted) + ' comments.');
+                      var msg = (d.data && d.data.message) || t('set.seeded_count', 'Seeded %d comments.').replace('%d', (d.data && d.data.inserted));
                       if (d.data && d.data.url) {
                           result.innerHTML = '';
                           result.appendChild(document.createTextNode(msg + ' '));
@@ -32,18 +34,18 @@
                           a.href = d.data.url;
                           a.target = '_blank';
                           a.rel = 'noopener';
-                          a.textContent = 'Open review →';
+                          a.textContent = t('set.open_review', 'Open review →');
                           result.appendChild(a);
                       } else {
                           result.textContent = msg;
                       }
                       result.style.color = '#1f7a3c';
                   } else {
-                      result.textContent = (d && d.data && d.data.message) || 'Seed failed.';
+                      result.textContent = (d && d.data && d.data.message) || t('set.seed_failed', 'Seed failed.');
                       result.style.color = '#b32d2e';
                   }
               })
-              .catch(function () { btn.disabled = false; result.textContent = 'Network error.'; result.style.color = '#b32d2e'; });
+              .catch(function () { btn.disabled = false; result.textContent = t('set.network_error', 'Network error.'); result.style.color = '#b32d2e'; });
         }
 
         var btn       = document.getElementById('dxf-seed-btn');

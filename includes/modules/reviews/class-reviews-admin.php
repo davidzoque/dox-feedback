@@ -58,6 +58,19 @@ final class DXF_Reviews_Admin {
             'i18n'        => [
                 'confirmDelete'   => __('Delete this review and all its data? This cannot be undone.', 'dox-feedback'),
                 'copied'          => __('Link copied', 'dox-feedback'),
+                // reviews.js reads these (rv.*) keys (previously hardcoded)
+                'rv.pickPage'             => __('Please pick a page.', 'dox-feedback'),
+                'rv.selectAtLeastOne'     => __('Please select at least one page.', 'dox-feedback'),
+                'rv.createActivate'       => __('Create & activate', 'dox-feedback'),
+                'rv.creating'             => __('Creating…', 'dox-feedback'),
+                'rv.couldNotCreate'       => __('Could not create review.', 'dox-feedback'),
+                'rv.networkError'         => __('Network error. Please try again.', 'dox-feedback'),
+                'rv.entireWarningLead'    => __('<strong>Heads up — this whole-site review includes %d items beyond your pages</strong> (%s).', 'dox-feedback'),
+                'rv.entireWarningBody'    => __('Sending a client hundreds of items can be overwhelming. Want to pick just the ones that need reviewing?', 'dox-feedback'),
+                'rv.pickSpecificItems'    => __('Pick specific items', 'dox-feedback'),
+                'rv.includeEverything'    => __('Include everything', 'dox-feedback'),
+                'rv.copy'                 => __('Copy', 'dox-feedback'),
+                'rv.couldNotChangeStatus' => __('Could not change review status.', 'dox-feedback'),
             ],
         ]);
     }

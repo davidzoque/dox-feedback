@@ -65,6 +65,12 @@ final class DXF_Pins_Dashboard {
                 'resolved' => __('Resolved', 'dox-feedback'),
                 'reopen'   => __('Reopen', 'dox-feedback'),
                 'resolve'  => __('Mark resolved', 'dox-feedback'),
+                // pins-dashboard.js reads these (pin.*) keys
+                'pin.error'    => __('Error', 'dox-feedback'),
+                'pin.open'     => __('Open', 'dox-feedback'),
+                'pin.resolved' => __('Resolved', 'dox-feedback'),
+                'pin.reopen'   => __('Reopen', 'dox-feedback'),
+                'pin.resolve'  => __('Mark resolved', 'dox-feedback'),
             ],
         ]);
     }

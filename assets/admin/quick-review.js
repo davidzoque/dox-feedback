@@ -24,6 +24,9 @@
     var R = window.dxfQuickReview;
     if (!R) return;
 
+    var I18N = (window.dxfQuickReview && window.dxfQuickReview.i18n) || {};
+    function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+
     var $host = $('#dxf-ab-quick-inner');
     if (!$host.length) return;
 
@@ -66,9 +69,9 @@
     // single-page link can't be mistaken for a site-wide one (and vice versa).
     function scopePill(scopeType) {
         var map = {
-            single:   { label: R.i18n.scopeSingle,   tip: R.i18n.scopeSingleTip,   cls: 'rqr-scope-single' },
-            selected: { label: R.i18n.scopeSelected, tip: R.i18n.scopeSelectedTip, cls: 'rqr-scope-selected' },
-            entire:   { label: R.i18n.scopeEntire,   tip: R.i18n.scopeEntireTip,   cls: 'rqr-scope-entire' }
+            single:   { label: t('scopeSingle', 'This page'),       tip: t('scopeSingleTip', 'Covers only the single page it was created on.'),   cls: 'rqr-scope-single' },
+            selected: { label: t('scopeSelected', 'Selected pages'), tip: t('scopeSelectedTip', 'Covers a hand-picked set of pages.'), cls: 'rqr-scope-selected' },
+            entire:   { label: t('scopeEntire', 'Whole site'),       tip: t('scopeEntireTip', 'Covers every page on the site.'),   cls: 'rqr-scope-entire' }
         };
         var m = map[scopeType] || map.single;
         return '<span class="rqr-scope-pill ' + m.cls + '" title="' + esc(m.tip) + '">' + esc(m.label) + '</span>';
@@ -82,7 +85,7 @@
         return ''
             + '<a class="rqr-pro-create" href="' + esc(R.newReviewUrl) + '">'
             + ico(ICONS.globe, { size: 12 })
-            + '<span>' + esc(R.i18n.proCreate) + '</span>'
+            + '<span>' + esc(t('proCreate', 'Multi-page or whole-site review')) + '</span>'
             + '</a>';
     }
 
@@ -96,7 +99,7 @@
                 + '<div class="rqr-link-pad rqr-link-empty">'
                 + '<div class="rqr-link-status">'
                 + '<span class="rqr-dot rqr-dot-mute"></span>'
-                + '<span>' + esc(R.i18n.noPage) + '</span>'
+                + '<span>' + esc(t('noPage', 'Navigate to a page to manage its review link.')) + '</span>'
                 + '</div>'
                 + '</div>';
         }
@@ -105,21 +108,21 @@
                 + '<div class="rqr-link-pad">'
                 + '<div class="rqr-link-status rqr-link-active">'
                 + '<span class="rqr-dot rqr-dot-active"></span>'
-                + '<span>' + esc(R.i18n.activeLink) + '</span>'
+                + '<span>' + esc(t('activeLink', 'Review link active')) + '</span>'
                 + scopePill('single')
                 + '</div>'
                 + '<div class="rqr-link-url-row">'
                 + '<div class="rqr-link-url">' + esc(R.reviewUrl) + '</div>'
                 + '<button type="button" class="rqr-copy-btn" data-copy="' + esc(R.reviewUrl) + '">'
-                + ico(ICONS.copy, { size: 12 }) + '<span>' + esc(R.i18n.copy) + '</span>'
+                + ico(ICONS.copy, { size: 12 }) + '<span>' + esc(t('copy', 'Copy')) + '</span>'
                 + '</button>'
                 + '</div>'
                 + '<div class="rqr-link-actions">'
                 + '<a class="rqr-link-open" href="' + esc(R.reviewUrl) + '" target="_blank" rel="noopener">'
-                + ico(ICONS.external, { size: 12 }) + '<span>' + esc(R.i18n.open || R.i18n.openInBrowser) + '</span>'
+                + ico(ICONS.external, { size: 12 }) + '<span>' + esc(t('open', 'Open') || t('openInBrowser', 'Open in browser')) + '</span>'
                 + '</a>'
                 + '<button type="button" class="rqr-revoke-btn">'
-                + ico(ICONS.cross, { size: 11, sw: 2.2 }) + '<span>' + esc(R.i18n.revoke) + '</span>'
+                + ico(ICONS.cross, { size: 11, sw: 2.2 }) + '<span>' + esc(t('revoke', 'Revoke')) + '</span>'
                 + '</button>'
                 + '</div>'
                 // Scope note dropped here — the "This page" pill above already
@@ -130,12 +133,12 @@
             + '<div class="rqr-link-pad rqr-link-empty">'
             + '<div class="rqr-link-status">'
             + '<span class="rqr-dot rqr-dot-mute"></span>'
-            + '<span>' + esc(R.i18n.noActiveLink) + '</span>'
+            + '<span>' + esc(t('noActiveLink', 'No active review link')) + '</span>'
             + '</div>'
             + '<button type="button" class="rqr-cta rqr-generate-btn">'
-            + ico(ICONS.link, { size: 13 }) + '<span>' + esc(R.i18n.generateLink) + '</span>'
+            + ico(ICONS.link, { size: 13 }) + '<span>' + esc(t('generateLink', 'Generate public link for this page')) + '</span>'
             + '</button>'
-            + '<div class="rqr-link-scope">' + esc(R.i18n.linkScope) + '</div>'
+            + '<div class="rqr-link-scope">' + esc(t('linkScope', 'This link is only for this page, not the whole site.')) + '</div>'
             + '</div>';
     }
 
@@ -147,12 +150,12 @@
         var canDelete = !!R.canManage;
 
         var countLine = activeCount > 0
-            ? '<span><strong>' + activeCount + '</strong> ' + esc(R.i18n.activeReviews || 'active reviews') + '</span>'
-            : '<span>' + esc(R.i18n.noActiveReviews || 'No active reviews') + '</span>';
+            ? '<span><strong>' + activeCount + '</strong> ' + esc(t('activeReviews', 'active reviews')) + '</span>'
+            : '<span>' + esc(t('noActiveReviews', 'No active reviews')) + '</span>';
 
         var newLink = newUrl
             ? '<a class="rqr-new-review" href="' + esc(newUrl) + '">'
-                + esc(R.i18n.newReview || 'New Review')
+                + esc(t('newReview', 'New Review'))
                 + ico(ICONS.chev, { size: 11, sw: 2.5 })
               + '</a>'
             : '';
@@ -161,7 +164,7 @@
         if (rows.length) {
             listHtml += '<ul class="rqr-review-list">';
             rows.forEach(function (r) {
-                var name = r.name && r.name.length ? r.name : (R.i18n.untitledReview || '(untitled review)');
+                var name = r.name && r.name.length ? r.name : t('untitledReview', '(untitled review)');
                 var manage = r.manageUrl || '';
                 listHtml += '<li class="rqr-review-item" data-review-id="' + (r.id | 0) + '">'
                     + '<a class="rqr-review-name" href="' + esc(manage) + '" title="' + esc(name) + '">'
@@ -170,15 +173,15 @@
                     + scopePill(r.scopeType)
                     + '<span class="rqr-review-actions">'
                     +   (r.openUrl
-                            ? '<a class="rqr-review-open" href="' + esc(r.openUrl) + '" target="_blank" rel="noopener" aria-label="' + esc(R.i18n.openReview || 'Open') + '" title="' + esc(R.i18n.openReview || 'Open') + '">'
+                            ? '<a class="rqr-review-open" href="' + esc(r.openUrl) + '" target="_blank" rel="noopener" aria-label="' + esc(t('openReview', 'Open')) + '" title="' + esc(t('openReview', 'Open')) + '">'
                                 + ico(ICONS.external, { size: 13 })
                               + '</a>'
                             : '')
-                    +   '<a class="rqr-review-manage" href="' + esc(manage) + '" aria-label="' + esc(R.i18n.edit || 'Edit review') + '" title="' + esc(R.i18n.edit || 'Edit review') + '">'
+                    +   '<a class="rqr-review-manage" href="' + esc(manage) + '" aria-label="' + esc(t('edit', 'Edit review')) + '" title="' + esc(t('edit', 'Edit review')) + '">'
                     +     ico(ICONS.edit, { size: 13 })
                     +   '</a>'
                     +   (canDelete
-                            ? '<button type="button" class="rqr-review-delete" aria-label="' + esc(R.i18n.delete || 'Delete') + '" title="' + esc(R.i18n.delete || 'Delete') + '">'
+                            ? '<button type="button" class="rqr-review-delete" aria-label="' + esc(t('delete', 'Delete')) + '" title="' + esc(t('delete', 'Delete')) + '">'
                                 + ico(ICONS.cross, { size: 12, sw: 2.2 })
                               + '</button>'
                             : '')
@@ -188,7 +191,7 @@
             listHtml += '</ul>';
             if (activeCount > rows.length) {
                 listHtml += '<a class="rqr-review-viewall" href="' + esc(R.menuBase || newUrl) + '">'
-                    + esc(R.i18n.viewAllReviews || 'View all reviews →')
+                    + esc(t('viewAllReviews', 'View all reviews →'))
                     + '</a>';
             }
         }
@@ -196,7 +199,7 @@
         return ''
             + '<div class="rqr-round-block">'
             + '<div class="rqr-round-head">'
-            + '<span class="rqr-round-title">' + esc(R.i18n.reviews || 'Reviews') + '</span>'
+            + '<span class="rqr-round-title">' + esc(t('reviews', 'Reviews')) + '</span>'
             + newLink
             + '</div>'
             + '<div class="rqr-round-meta">'
@@ -204,8 +207,8 @@
             + countLine
             + (R.postId
                 ? ' &middot; ' + (R.builderUrl
-                    ? '<a class="rqr-open-comments" href="' + esc(R.builderUrl) + '" title="' + esc(R.i18n.openInBuilder || 'Open in the builder') + '"><strong>' + open + '</strong> ' + esc(R.i18n.openComments) + '</a>'
-                    : '<span><strong>' + open + '</strong> ' + esc(R.i18n.openComments) + '</span>')
+                    ? '<a class="rqr-open-comments" href="' + esc(R.builderUrl) + '" title="' + esc(t('openInBuilder', 'Open in the builder')) + '"><strong>' + open + '</strong> ' + esc(t('openComments', 'open comments')) + '</a>'
+                    : '<span><strong>' + open + '</strong> ' + esc(t('openComments', 'open comments')) + '</span>')
                 : '')
             + '</div>'
             + listHtml
@@ -215,7 +218,7 @@
     function settingsRow() {
         return ''
             + '<a class="rqr-settings" href="' + esc(R.settingsUrl) + '">'
-            + ico(ICONS.cog, { size: 13 }) + '<span>' + esc(R.i18n.settings) + '</span>'
+            + ico(ICONS.cog, { size: 13 }) + '<span>' + esc(t('settings', 'Dox Feedback Settings')) + '</span>'
             + '</a>';
     }
 
@@ -245,7 +248,7 @@
         if (!R.postId) return;
         var origHtml = $btn.html();
         $btn.prop('disabled', true).html(
-            ico(ICONS.link, { size: 13 }) + '<span>' + esc(R.i18n.generating) + '</span>'
+            ico(ICONS.link, { size: 13 }) + '<span>' + esc(t('generating', 'Generating link…')) + '</span>'
         );
         $.post(R.ajaxUrl, {
             action:   'dxf_generate_review_link',
@@ -269,21 +272,21 @@
                 }
                 render();
             } else {
-                var msg = (resp && resp.data && resp.data.message) || R.i18n.failed;
+                var msg = (resp && resp.data && resp.data.message) || t('failed', 'Action failed. Please try again.');
                 $btn.prop('disabled', false).html(origHtml);
                 showError(msg);
             }
         }).fail(function () {
             $btn.prop('disabled', false).html(origHtml);
-            showError(R.i18n.failed);
+            showError(t('failed', 'Action failed. Please try again.'));
         });
     }
 
     function revokeLink($btn) {
         if (!R.token || !R.postId) return;
         if ($btn.prop('disabled')) return; // belt-and-braces against double-fire
-        if (!window.confirm(R.i18n.revokeConfirm)) return;
-        $btn.prop('disabled', true).text(R.i18n.revoking);
+        if (!window.confirm(t('revokeConfirm', 'Revoke this review link? Clients with the current URL will lose access.'))) return;
+        $btn.prop('disabled', true).text(t('revoking', 'Revoking…'));
 
         // Apply the revoke locally and re-render. The server endpoint is
         // idempotent, so we treat any response (success, 404, network blip)
@@ -317,15 +320,15 @@
                 applyRevoked();
                 return;
             }
-            $btn.prop('disabled', false).text(R.i18n.revoke);
-            showError(R.i18n.failed);
+            $btn.prop('disabled', false).text(t('revoke', 'Revoke'));
+            showError(t('failed', 'Action failed. Please try again.'));
         });
     }
 
     function copyText(text, $btn) {
-        var orig = $btn.text() || R.i18n.copy;
+        var orig = $btn.text() || t('copy', 'Copy');
         var done = function () {
-            $btn.text(R.i18n.copied);
+            $btn.text(t('copied', 'Copied!'));
             setTimeout(function () { render(); }, 1400);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -349,9 +352,9 @@
         var $item = $btn.closest('.rqr-review-item');
         var id = parseInt($item.attr('data-review-id'), 10) || 0;
         if (!id) return;
-        if (!window.confirm(R.i18n.deleteConfirm)) return;
+        if (!window.confirm(t('deleteConfirm', 'Delete this review and all its data? This cannot be undone.'))) return;
 
-        $btn.prop('disabled', true).attr('title', R.i18n.deleting);
+        $btn.prop('disabled', true).attr('title', t('deleting', 'Deleting…'));
         $item.addClass('is-deleting');
 
         $.post(R.ajaxUrl, {
@@ -367,12 +370,12 @@
             } else {
                 $btn.prop('disabled', false);
                 $item.removeClass('is-deleting');
-                showError(R.i18n.failed);
+                showError(t('failed', 'Action failed. Please try again.'));
             }
         }).fail(function () {
             $btn.prop('disabled', false);
             $item.removeClass('is-deleting');
-            showError(R.i18n.failed);
+            showError(t('failed', 'Action failed. Please try again.'));
         });
     }
 
@@ -399,11 +402,11 @@
         tip.id = 'dxf-ab-tip';
         var msg = document.createElement('span');
         msg.className = 'dxf-ab-tip-msg';
-        msg.textContent = (R.i18n && R.i18n.adminBarTip) || 'Click Dox Feedback to leave feedback on this page.';
+        msg.textContent = t('adminBarTip', 'Click Dox Feedback to leave feedback on this page.');
         var close = document.createElement('button');
         close.type = 'button';
         close.className = 'dxf-ab-tip-close';
-        close.setAttribute('aria-label', 'Dismiss');
+        close.setAttribute('aria-label', t('qr.dismiss', 'Dismiss'));
         close.innerHTML = '&times;';
         tip.appendChild(msg);
         tip.appendChild(close);

@@ -859,6 +859,8 @@ final class DXF_Reviews {
                 'proCreate'    => __('Multi-page or whole-site review', 'dox-feedback'),
                 'proEditScope' => __('Edit scope', 'dox-feedback'),
                 'settings'     => __('Dox Feedback Settings', 'dox-feedback'),
+                // quick-review.js reads this (qr.*) key (previously hardcoded)
+                'qr.dismiss'   => __('Dismiss', 'dox-feedback'),
             ],
         ]);
     }

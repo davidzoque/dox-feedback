@@ -12,6 +12,9 @@
 
     var R = window.dxfReviews || {};
 
+    var I18N = (window.dxfReviews && window.dxfReviews.i18n) || {};
+    function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+
     function ajax(action, data) {
         data = $.extend({ action: action, _ajax_nonce: R.nonce }, data || {});
         return $.post(R.ajaxUrl, data);
@@ -72,11 +75,11 @@
             if (step === 1) {
                 var scope = $form.find('input[name="scope_type"]:checked').val();
                 if (scope === 'single' && !$form.find('select[name="single_post_id"]').val()) {
-                    alert('Please pick a page.');
+                    alert(t('rv.pickPage', 'Please pick a page.'));
                     return;
                 }
                 if (scope === 'selected' && $form.find('input[name="post_ids[]"]:checked').length === 0) {
-                    alert('Please select at least one page.');
+                    alert(t('rv.selectAtLeastOne', 'Please select at least one page.'));
                     return;
                 }
                 // Whole-site reviews that would pull in lots of non-page posts:
@@ -113,8 +116,8 @@
                 });
             }
 
-            var createLabel = 'Create & activate';
-            var $btn  = $form.find('.dxf-create').prop('disabled', true).text('Creating…');
+            var createLabel = t('rv.createActivate', 'Create & activate');
+            var $btn  = $form.find('.dxf-create').prop('disabled', true).text(t('rv.creating', 'Creating…'));
             var $out  = $form.find('.dxf-create-result').removeClass('error').hide();
 
             var payload = {
@@ -139,13 +142,13 @@
 
             ajax('dxf_review_create', payload).done(function (resp) {
                 if (!resp || !resp.success) {
-                    $out.addClass('error').text((resp && resp.data && resp.data.message) || 'Could not create review.').show();
+                    $out.addClass('error').text((resp && resp.data && resp.data.message) || t('rv.couldNotCreate', 'Could not create review.')).show();
                     $btn.prop('disabled', false).text(createLabel);
                     return;
                 }
                 publishAndRedirect(resp.data.review);
             }).fail(function () {
-                $out.addClass('error').text('Network error. Please try again.').show();
+                $out.addClass('error').text(t('rv.networkError', 'Network error. Please try again.')).show();
                 $btn.prop('disabled', false).text(createLabel);
             });
         });
@@ -169,11 +172,15 @@
 
             $form.find('.dxf-entire-warning').remove();
             var $w = $('<div class="dxf-entire-warning notice notice-warning inline" style="margin:14px 0;padding:12px 14px;"></div>').html(
-                '<p style="margin:0 0 6px;"><strong>Heads up — this whole-site review includes ' + excess +
-                    ' items beyond your pages</strong> (' + breakdown.join(', ') + ').</p>' +
-                '<p style="margin:0 0 10px;">Sending a client hundreds of items can be overwhelming. Want to pick just the ones that need reviewing?</p>' +
-                '<button type="button" class="button button-primary dxf-ew-pick">Pick specific items</button> ' +
-                '<button type="button" class="button dxf-ew-all">Include everything</button>'
+                '<p style="margin:0 0 6px;">' +
+                    t('rv.entireWarningLead', '<strong>Heads up — this whole-site review includes %d items beyond your pages</strong> (%s).')
+                        .replace('%d', excess).replace('%s', breakdown.join(', ')) +
+                '</p>' +
+                '<p style="margin:0 0 10px;">' +
+                    t('rv.entireWarningBody', 'Sending a client hundreds of items can be overwhelming. Want to pick just the ones that need reviewing?') +
+                '</p>' +
+                '<button type="button" class="button button-primary dxf-ew-pick">' + t('rv.pickSpecificItems', 'Pick specific items') + '</button> ' +
+                '<button type="button" class="button dxf-ew-all">' + t('rv.includeEverything', 'Include everything') + '</button>'
             );
             $form.find('.dxf-step-1').append($w);
             $w[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -208,12 +215,12 @@
         var $btn = $(this);
         var $url = $btn.siblings('.dxf-share-url');
         $url[0].select(); $url[0].setSelectionRange(0, 9999);
-        try { document.execCommand('copy'); $btn.text(R.i18n.copied); setTimeout(function(){ $btn.text('Copy'); }, 1500); } catch(e) {}
+        try { document.execCommand('copy'); $btn.text(t('copied', 'Link copied')); setTimeout(function(){ $btn.text(t('rv.copy', 'Copy')); }, 1500); } catch(e) {}
     });
 
     function activationFailedMessage(resp) {
         return (resp && resp.data && resp.data.message) ||
-               'Could not change review status.';
+               t('rv.couldNotChangeStatus', 'Could not change review status.');
     }
 
     $(document).on('click', '.dxf-publish', function () {
@@ -246,7 +253,7 @@
     });
 
     $(document).on('click', '.dxf-delete', function () {
-        if (!confirm(R.i18n.confirmDelete)) return;
+        if (!confirm(t('confirmDelete', 'Delete this review and all its data? This cannot be undone.'))) return;
         var id = $(this).data('review-id');
         ajax('dxf_review_delete', { review_id: id }).done(function () {
             window.location = R.menuBase;

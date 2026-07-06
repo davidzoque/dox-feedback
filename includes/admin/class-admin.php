@@ -181,6 +181,12 @@ class DXF_Admin {
                 'sendingTest'     => __('Sending…', 'dox-feedback'),
                 'testEmailSent'   => __('Test email sent successfully.', 'dox-feedback'),
                 'testEmailFailed' => __('Test email failed. See the error below.', 'dox-feedback'),
+                // admin.js reads these (snake_case) keys
+                'adm.error'             => __('Something went wrong. Please try again.', 'dox-feedback'),
+                'adm.sending_test'      => __('Sending…', 'dox-feedback'),
+                'adm.test_email_sent'   => __('Test email sent successfully.', 'dox-feedback'),
+                'adm.test_email_failed' => __('Test email failed. See the error below.', 'dox-feedback'),
+                'adm.send_test_email'   => __('Send test email', 'dox-feedback'),
             ],
         ]);
 
@@ -200,6 +206,14 @@ class DXF_Admin {
             'seedNonce'      => wp_create_nonce('dxf_seed_dummy'),
             'bugNonce'       => wp_create_nonce('dxf_dismiss_bug_callout'),
             'telemetryNonce' => wp_create_nonce('dxf_telemetry_optin'),
+            'i18n' => [
+                'set.seed_need_id'  => __('Enter a post or page ID first.', 'dox-feedback'),
+                'set.seeding'       => __('Seeding…', 'dox-feedback'),
+                'set.seeded_count'  => __('Seeded %d comments.', 'dox-feedback'),
+                'set.open_review'   => __('Open review →', 'dox-feedback'),
+                'set.seed_failed'   => __('Seed failed.', 'dox-feedback'),
+                'set.network_error' => __('Network error.', 'dox-feedback'),
+            ],
         ]);
     }
 
