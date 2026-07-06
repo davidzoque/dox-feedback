@@ -3,7 +3,7 @@
  * Plugin Name: Dox Feedback
  * Plugin URI:  https://doxstudio.com
  * Description: Client feedback, visual review and approvals for WordPress — pinned comments, threaded replies, client sign-off, and shareable review links for a single page, several pages or a whole site, with email-invited reviewers and roles. Native to Bricks and Elementor; works on any WordPress site.
- * Version:     1.0.3
+ * Version:     1.1.0
  * Author:      Dox Studio
  * Author URI:  https://doxstudio.com
  * License:     GPL-2.0-or-later
@@ -26,7 +26,7 @@ if ( ! defined('ABSPATH') ) {
     exit;
 }
 
-define('DXF_VERSION',  '1.0.3');
+define('DXF_VERSION',  '1.1.0');
 define('DXF_DB_VERSION', '0.9.0');
 define('DXF_FILE',     __FILE__);
 define('DXF_DIR',      plugin_dir_path(__FILE__));
@@ -41,6 +41,24 @@ register_activation_hook(__FILE__,   ['DXF_Plugin', 'activate']);
 register_deactivation_hook(__FILE__, ['DXF_Plugin', 'deactivate']);
 
 add_action('plugins_loaded', ['DXF_Plugin', 'instance']);
+
+// Load the bundled Colombian-Spanish translation for ANY Spanish locale
+// (es_CO, es_ES, es_MX, es_AR…). WordPress does not fall back es_ES → es_CO on
+// its own, so redirect every Spanish variant to our single es_CO .mo — the
+// translation then "just works" regardless of each site's exact Spanish setting.
+add_filter('load_textdomain_mofile', function ($mofile, $domain) {
+    if ($domain !== 'dox-feedback') {
+        return $mofile;
+    }
+    $base = basename((string) $mofile);
+    if ($base === 'dox-feedback-es.mo' || strncmp($base, 'dox-feedback-es_', 16) === 0) {
+        $es_co = DXF_DIR . 'languages/dox-feedback-es_CO.mo';
+        if (is_readable($es_co)) {
+            return $es_co;
+        }
+    }
+    return $mofile;
+}, 10, 2);
 
 // ─── Auto-actualizaciones desde GitHub (Plugin Update Checker) ────────────────
 // El plugin se actualiza desde las releases del repo de GitHub, no desde
