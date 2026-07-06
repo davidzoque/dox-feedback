@@ -17,6 +17,15 @@
   if (!cfg || !cfg.postId) return;
   if (!window.DxfCommentEngine) { console.warn('Dox Feedback: comment engine missing'); return; }
 
+  // ---------------------------------------------------------------------------
+  // i18n — translations are supplied at window.dxfComments.i18n (shared across
+  // the plugin's JS files). Keys here are prefixed `bld.` to avoid collisions.
+  // t(key, fallback) returns the fallback whenever no translation is present,
+  // so behaviour is unchanged when the site ships no translations.
+  // ---------------------------------------------------------------------------
+  var I18N = (cfg && cfg.i18n) || (window.dxfComments && window.dxfComments.i18n) || {};
+  function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+
   var ACCENT = (cfg.accent && /^#[0-9a-fA-F]{3,6}$/.test(cfg.accent)) ? cfg.accent : '#ff8d27';
   var POLL_INTERVAL = 300;
   var MAX_POLLS     = 40;
@@ -327,7 +336,7 @@
 
       var li = document.createElement('li');
       li.id = 'dxf-tb-sidebar';
-      li.setAttribute('data-balloon', 'Comments');
+      li.setAttribute('data-balloon', t('bld.comments', 'Comments'));
       li.setAttribute('data-balloon-pos', 'bottom');
       li.setAttribute('tabindex', '0');
       li.setAttribute('role', 'button');
@@ -413,22 +422,22 @@
     var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
     var intro = opts.changeNameOnly
       ? ''
-      : '<p class="dxf-identity-intro">You\'re commenting from this browser for the first time. Confirm the name to show on your comments — handy when your team shares one login.</p>';
+      : '<p class="dxf-identity-intro">' + esc(t('bld.identityIntro', "You're commenting from this browser for the first time. Confirm the name to show on your comments — handy when your team shares one login.")) + '</p>';
     body.innerHTML =
       '<div class="dxf-identity">' +
         intro +
-        '<label class="dxf-identity-label">Your name</label>' +
-        '<input type="text" class="dxf-identity-input" id="dxf-id-name" value="' + esc(current) + '" placeholder="Jane Smith" autocomplete="name">' +
+        '<label class="dxf-identity-label">' + esc(t('bld.yourName', 'Your name')) + '</label>' +
+        '<input type="text" class="dxf-identity-input" id="dxf-id-name" value="' + esc(current) + '" placeholder="' + esc(t('bld.namePlaceholder', 'Jane Smith')) + '" autocomplete="name">' +
         '<p class="dxf-identity-error" id="dxf-id-error"></p>' +
         '<div class="dxf-identity-actions">' +
-          (opts.changeNameOnly ? '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">Back</button>' : '') +
-          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + (opts.changeNameOnly ? 'Save' : 'Continue') + '</button>' +
+          (opts.changeNameOnly ? '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">' + esc(t('bld.back', 'Back')) + '</button>' : '') +
+          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + esc(opts.changeNameOnly ? t('bld.save', 'Save') : t('bld.continue', 'Continue')) + '</button>' +
         '</div>' +
       '</div>';
     var input = body.querySelector('#dxf-id-name');
     var submit = function () {
       var n = input.value.trim();
-      if (!n) { body.querySelector('#dxf-id-error').textContent = 'Please enter your name.'; return; }
+      if (!n) { body.querySelector('#dxf-id-error').textContent = t('bld.nameRequired', 'Please enter your name.'); return; }
       builderName = n;
       setCookie(BUILDER_NAME_COOKIE, n, 365);
       if (onSuccess) onSuccess();
@@ -489,10 +498,10 @@
       sidebar.classList.add('dxf-dock-resizable');
       var hx = document.createElement('div');
       hx.className = 'dxf-dock-resize dxf-dock-resize-x';
-      hx.setAttribute('title', 'Drag to resize width');
+      hx.setAttribute('title', t('bld.resizeWidth', 'Drag to resize width'));
       var hy = document.createElement('div');
       hy.className = 'dxf-dock-resize dxf-dock-resize-y';
-      hy.setAttribute('title', 'Drag to resize height (divider)');
+      hy.setAttribute('title', t('bld.resizeHeight', 'Drag to resize height (divider)'));
       sidebar.appendChild(hx);
       sidebar.appendChild(hy);
 
@@ -721,7 +730,7 @@
         sidebar.classList.toggle('dxf-float', floating);
         if (dockBtn) {
           dockBtn.classList.toggle('is-active', !floating);
-          dockBtn.setAttribute('title', floating ? 'Dock panel' : 'Float panel');
+          dockBtn.setAttribute('title', floating ? t('bld.dockPanel', 'Dock panel') : t('bld.floatPanel', 'Float panel'));
         }
         if (floating) { revertStructure(); releaseCanvas(); }
         scheduleLayout();
@@ -731,7 +740,7 @@
         dockBtn = document.createElement('button');
         dockBtn.type = 'button';
         dockBtn.className = 'dxf-dock-toggle';
-        dockBtn.setAttribute('aria-label', 'Dock or float the panel');
+        dockBtn.setAttribute('aria-label', t('bld.dockOrFloat', 'Dock or float the panel'));
         dockBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg>';
         themeBtn.parentNode.insertBefore(dockBtn, themeBtn);
         dockBtn.addEventListener('click', function () {
@@ -817,7 +826,7 @@
       isBuilder: true,
       brand: {
         accent:       ACCENT,
-        name:         (cfg.brandName || 'Comments'),
+        name:         (cfg.brandName || t('bld.comments', 'Comments')),
         logo:         (cfg.brandLogo || ''),
         color:        '',
         textColor:    '',

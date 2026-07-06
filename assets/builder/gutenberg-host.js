@@ -23,6 +23,9 @@
   if (!cfg || !cfg.postId) return;
   if (!window.DxfCommentEngine) { console.warn('Dox Feedback: comment engine missing'); return; }
 
+  var I18N = (window.dxfComments && window.dxfComments.i18n) || {};
+  function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+
   var ACCENT = (cfg.accent && /^#[0-9a-fA-F]{3,6}$/.test(cfg.accent)) ? cfg.accent : '#ff8d27';
   var POLL_INTERVAL = 300;
   var MAX_POLLS     = 80; // the block editor + its iframe can take a while to mount.
@@ -188,8 +191,8 @@
     fab.id = 'dxf-fab';
     fab.type = 'button';
     fab.className = 'dxf-fab--bottom-right';
-    fab.setAttribute('aria-label', 'Comments');
-    fab.innerHTML = opts.ICONS.comment + '<span>Comments</span>';
+    fab.setAttribute('aria-label', t('gbh.fab_aria', 'Comments'));
+    fab.innerHTML = opts.ICONS.comment + '<span>' + t('gbh.fab_label', 'Comments') + '</span>';
     fab.addEventListener('click', opts.toggleComments);
     document.body.appendChild(fab);
     try {
@@ -215,22 +218,22 @@
     var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
     var intro = opts.changeNameOnly
       ? ''
-      : '<p class="dxf-identity-intro">You\'re commenting from this browser for the first time. Confirm the name to show on your comments — handy when your team shares one login.</p>';
+      : '<p class="dxf-identity-intro">' + t('gbh.identity_intro', 'You\'re commenting from this browser for the first time. Confirm the name to show on your comments — handy when your team shares one login.') + '</p>';
     body.innerHTML =
       '<div class="dxf-identity">' +
         intro +
-        '<label class="dxf-identity-label">Your name</label>' +
-        '<input type="text" class="dxf-identity-input" id="dxf-id-name" value="' + esc(current) + '" placeholder="Jane Smith" autocomplete="name">' +
+        '<label class="dxf-identity-label">' + t('gbh.identity_name_label', 'Your name') + '</label>' +
+        '<input type="text" class="dxf-identity-input" id="dxf-id-name" value="' + esc(current) + '" placeholder="' + esc(t('gbh.identity_name_placeholder', 'Jane Smith')) + '" autocomplete="name">' +
         '<p class="dxf-identity-error" id="dxf-id-error"></p>' +
         '<div class="dxf-identity-actions">' +
-          (opts.changeNameOnly ? '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">Back</button>' : '') +
-          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + (opts.changeNameOnly ? 'Save' : 'Continue') + '</button>' +
+          (opts.changeNameOnly ? '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">' + t('gbh.identity_back', 'Back') + '</button>' : '') +
+          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + (opts.changeNameOnly ? t('gbh.identity_save', 'Save') : t('gbh.identity_continue', 'Continue')) + '</button>' +
         '</div>' +
       '</div>';
     var input = body.querySelector('#dxf-id-name');
     var submit = function () {
       var n = input.value.trim();
-      if (!n) { body.querySelector('#dxf-id-error').textContent = 'Please enter your name.'; return; }
+      if (!n) { body.querySelector('#dxf-id-error').textContent = t('gbh.identity_error_required', 'Please enter your name.'); return; }
       builderName = n;
       setCookie(NAME_COOKIE, n, 365);
       if (onSuccess) onSuccess();
@@ -327,12 +330,12 @@
       b.id = TOGGLE_ID;
       b.type = 'button';
       b.className = 'components-button dxf-gb-toggle';
-      b.setAttribute('aria-label', 'Comments');
+      b.setAttribute('aria-label', t('gbh.toolbar_aria', 'Comments'));
       b.setAttribute('aria-pressed', 'false');
       b.innerHTML =
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
           '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
-        '</svg><span class="dxf-gb-toggle-label">Comments</span>';
+        '</svg><span class="dxf-gb-toggle-label">' + t('gbh.toolbar_label', 'Comments') + '</span>';
       b.addEventListener('click', function () {
         if (engineApi.state && engineApi.state.sidebarOpen) engineApi.closeSidebar();
         else engineApi.openSidebar();
@@ -380,7 +383,7 @@
       builderId: 'gutenberg',
       brand: {
         accent: ACCENT,
-        name: (cfg.brandName || 'Comments'),
+        name: (cfg.brandName || t('gbh.brand_name', 'Comments')),
         logo: (cfg.brandLogo || ''),
         color: '', textColor: '', isWhitelabel: false,
       },

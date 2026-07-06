@@ -21,6 +21,9 @@
   if (!cfg || !cfg.postId) return;
   if (!window.DxfCommentEngine) { console.warn('Dox Feedback: comment engine missing'); return; }
 
+  var I18N = (window.dxfComments && window.dxfComments.i18n) || {};
+  function t(k, fb){ var v = I18N[k]; return (v === undefined || v === null || v === '') ? fb : v; }
+
   var ACCENT = (cfg.accent && /^#[0-9a-fA-F]{3,6}$/.test(cfg.accent)) ? cfg.accent : '#ff8d27';
   var POLL_INTERVAL = 300;
   var MAX_POLLS     = 60; // Elementor's preview iframe can be slow to mount.
@@ -197,8 +200,8 @@
     fab.id = 'dxf-fab';
     fab.type = 'button';
     fab.className = 'dxf-fab--bottom-right';
-    fab.setAttribute('aria-label', 'Feedback');
-    fab.innerHTML = opts.ICONS.comment + '<span>Comments</span>';
+    fab.setAttribute('aria-label', t('elh.fab_aria', 'Feedback'));
+    fab.innerHTML = opts.ICONS.comment + '<span>' + t('elh.fab_label', 'Comments') + '</span>';
     fab.addEventListener('click', opts.toggleComments);
     document.body.appendChild(fab);
     // Restore last open state (or force open via ?dxf_open=1).
@@ -225,22 +228,22 @@
     var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
     var intro = opts.changeNameOnly
       ? ''
-      : '<p class="dxf-identity-intro">You\'re commenting from this browser for the first time. Confirm the name to show on your comments — handy when your team shares one login.</p>';
+      : '<p class="dxf-identity-intro">' + t('elh.identity_intro', 'You\'re commenting from this browser for the first time. Confirm the name to show on your comments — handy when your team shares one login.') + '</p>';
     body.innerHTML =
       '<div class="dxf-identity">' +
         intro +
-        '<label class="dxf-identity-label">Your name</label>' +
-        '<input type="text" class="dxf-identity-input" id="dxf-id-name" value="' + esc(current) + '" placeholder="Jane Smith" autocomplete="name">' +
+        '<label class="dxf-identity-label">' + t('elh.identity_name_label', 'Your name') + '</label>' +
+        '<input type="text" class="dxf-identity-input" id="dxf-id-name" value="' + esc(current) + '" placeholder="' + esc(t('elh.identity_name_placeholder', 'Jane Smith')) + '" autocomplete="name">' +
         '<p class="dxf-identity-error" id="dxf-id-error"></p>' +
         '<div class="dxf-identity-actions">' +
-          (opts.changeNameOnly ? '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">Back</button>' : '') +
-          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + (opts.changeNameOnly ? 'Save' : 'Continue') + '</button>' +
+          (opts.changeNameOnly ? '<button type="button" class="dxf-btn dxf-btn-ghost" id="dxf-id-back">' + t('elh.identity_back', 'Back') + '</button>' : '') +
+          '<button type="button" class="dxf-btn dxf-btn-primary" id="dxf-id-submit">' + (opts.changeNameOnly ? t('elh.identity_save', 'Save') : t('elh.identity_continue', 'Continue')) + '</button>' +
         '</div>' +
       '</div>';
     var input = body.querySelector('#dxf-id-name');
     var submit = function () {
       var n = input.value.trim();
-      if (!n) { body.querySelector('#dxf-id-error').textContent = 'Please enter your name.'; return; }
+      if (!n) { body.querySelector('#dxf-id-error').textContent = t('elh.identity_error_required', 'Please enter your name.'); return; }
       builderName = n;
       setCookie(NAME_COOKIE, n, 365);
       if (onSuccess) onSuccess();
@@ -372,7 +375,7 @@
       builderId: 'elementor', // force the Elementor anchor adapter
       brand: {
         accent: ACCENT,
-        name: (cfg.brandName || 'Comments'),
+        name: (cfg.brandName || t('elh.brand_name', 'Comments')),
         logo: (cfg.brandLogo || ''),
         color: '', textColor: '', isWhitelabel: false,
       },
