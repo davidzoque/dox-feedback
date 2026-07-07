@@ -17,8 +17,6 @@ class DXF_Admin {
         add_action('admin_head',             [$this, 'render_favicon']);
         add_action('admin_notices',          [$this, 'render_mail_notice']);
         add_action('admin_init',             [$this, 'handle_mail_notice_dismiss']);
-        add_action('admin_notices',          [$this, 'render_review_ask_notice']);
-        add_action('admin_init',             [$this, 'handle_review_ask_dismiss']);
         add_action('wp_ajax_dxf_send_test_email',     [$this, 'ajax_send_test_email']);
         add_action('wp_ajax_dxf_dismiss_bug_callout', ['DXF_Settings', 'ajax_dismiss_bug_callout']);
         add_action('wp_ajax_dxf_seed_dummy',          ['DXF_Settings', 'ajax_seed_dummy']);
@@ -273,58 +271,6 @@ class DXF_Admin {
 
         // Redirect back without the query var so the URL stays clean.
         $redirect = remove_query_arg(['dxf_dismiss_mail_notice', '_wpnonce']);
-        wp_safe_redirect($redirect);
-        exit;
-    }
-
-    /**
-     * One-time wp.org review ask, shown after the FIRST client approval is
-     * recorded (the moment Dox Feedback has visibly delivered value). Scoped to
-     * Dox Feedback's own admin screens, fully dismissible, never repeats once
-     * dismissed, and offers no incentive — all per the wp.org guidelines.
-     */
-    public function render_review_ask_notice(): void {
-        if ( ! current_user_can('manage_options') ) {
-            return;
-        }
-        if ( get_option('dxf_review_ask_state', '') !== 'due' ) {
-            return;
-        }
-        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
-        if ( ! $screen || strpos((string) $screen->id, 'dxf') === false ) {
-            return;
-        }
-
-        $review_url  = 'https://wordpress.org/support/plugin/dox-feedback/reviews/#new-post';
-        $dismiss_url = wp_nonce_url(
-            add_query_arg('dxf_dismiss_review_ask', '1'),
-            'dxf_dismiss_review_ask'
-        );
-        ?>
-        <div class="notice notice-success dxf-review-ask-notice" style="position:relative; padding-right:44px;">
-            <p>
-                <strong><?php esc_html_e('Your client just signed off through Dox Feedback 🎉', 'dox-feedback'); ?></strong>
-                &mdash; <?php esc_html_e('If Dox Feedback is saving you review round-trips, a quick rating on WordPress.org genuinely helps other Bricks builders find it.', 'dox-feedback'); ?>
-                &nbsp;
-                <a class="button button-primary button-small" href="<?php echo esc_url($review_url); ?>" target="_blank" rel="noopener"><?php esc_html_e('Leave a review →', 'dox-feedback'); ?></a>
-            </p>
-            <a href="<?php echo esc_url($dismiss_url); ?>"
-               style="position:absolute; top:12px; right:14px; text-decoration:none; font-size:18px; color:#787c82; line-height:1;"
-               aria-label="<?php esc_attr_e('Dismiss this notice', 'dox-feedback'); ?>">&times;</a>
-        </div>
-        <?php
-    }
-
-    public function handle_review_ask_dismiss(): void {
-        if (
-            ! isset($_GET['dxf_dismiss_review_ask']) ||
-            ! current_user_can('manage_options') ||
-            ! check_admin_referer('dxf_dismiss_review_ask')
-        ) {
-            return;
-        }
-        update_option('dxf_review_ask_state', 'done', false);
-        $redirect = remove_query_arg(['dxf_dismiss_review_ask', '_wpnonce']);
         wp_safe_redirect($redirect);
         exit;
     }

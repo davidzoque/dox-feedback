@@ -52,16 +52,6 @@ final class DXF_Plugin {
         // All-in-one: wire on multi-page + email-reviewer features and register
         // the plugin as fully unlocked (no separate add-on, no licence server).
         new DXF_Features();
-
-        // First client sign-off → flag the one-time wp.org review ask
-        // (rendered by DXF_Admin). Registered here, not in DXF_Admin:
-        // approvals arrive on PUBLIC (nopriv) AJAX requests where the admin
-        // class is never constructed.
-        add_action(DXF_Events::HOOK, static function ( string $event ): void {
-            if ( $event === 'approval.created' && get_option('dxf_review_ask_state', '') === '' ) {
-                update_option('dxf_review_ask_state', 'due', false);
-            }
-        });
     }
 
     // -------------------------------------------------------------------------
