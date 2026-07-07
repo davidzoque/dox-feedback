@@ -1733,7 +1733,7 @@
       }
 
       // ── Review-completion section ──
-      // Multi-page reviews: "Mark as reviewed" flips a per-page server state
+      // Multi-page reviews: this button ("Request these changes") flips a per-page server state
       // and returns to the dashboard (no email — they notify once from there).
       // Single-page reviews: the button IS the finish action → optional note +
       // notify the developer immediately.
@@ -1747,8 +1747,8 @@
             if ((rv.pages[p].id | 0) === (cfg.postId | 0)) { thisReviewed = !!rv.pages[p].reviewed; break; }
           }
           doneBtn = thisReviewed
-            ? '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-reviewed-toggle is-reviewed" id="dxf-unreview">' + ICONS.check + '<span>' + escHtml(t('review.reviewedUndo', 'Reviewed — undo')) + '</span></button>'
-            : '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-mark-reviewed">' + escHtml(t('review.markReviewed', 'Mark as reviewed')) + '</button>';
+            ? '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-reviewed-toggle is-reviewed" id="dxf-unreview">' + ICONS.check + '<span>' + escHtml(t('review.reviewedUndo', 'Changes requested — undo')) + '</span></button>'
+            : '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-mark-reviewed">' + escHtml(t('review.markReviewed', 'Request these changes')) + '</button>';
         } else {
           doneBtn = '<button type="button" class="dxf-btn dxf-btn-ghost dxf-btn-full dxf-done-btn" id="dxf-finish-review">' + escHtml(t('review.finishNotify', 'Finish & notify developer')) + '</button>';
         }
@@ -1775,7 +1775,7 @@
           else { renderFooter(); }
         }).catch(function () {
           markRevBtn.disabled = false;
-          markRevBtn.textContent = t('review.markReviewed', 'Mark as reviewed');
+          markRevBtn.textContent = t('review.markReviewed', 'Request these changes');
         });
       });
 

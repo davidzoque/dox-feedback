@@ -288,8 +288,8 @@ class DXF_Comments {
             'approve.revertConfirm' => __('Revert this page back to unapproved? The original approval record is removed.', 'dox-feedback'),
             'approve.reverting'   => __('Reverting…', 'dox-feedback'),
             // Review / finish flow
-            'review.reviewedUndo' => __('Reviewed — undo', 'dox-feedback'),
-            'review.markReviewed' => __('Mark as reviewed', 'dox-feedback'),
+            'review.reviewedUndo' => __('Changes requested — undo', 'dox-feedback'),
+            'review.markReviewed' => __('Request these changes', 'dox-feedback'),
             'review.finishNotify' => __('Finish & notify developer', 'dox-feedback'),
             'review.assignTo'     => __('Assign to a Review', 'dox-feedback'),
             'review.assign'       => __('Assign', 'dox-feedback'),
