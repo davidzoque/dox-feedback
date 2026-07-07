@@ -26,19 +26,13 @@ body {
 }
 .rv-brand {
     display: inline-flex;
-    align-items: center;
     margin: 0 auto 18px;
-    border-radius: 12px;
-    background: #fff;
-    padding: 9px 14px;
-    border: 1px solid #eae5dd;
-    box-shadow: 0 2px 10px rgba(28, 28, 28, .10);
 }
 .rv-brand img {
     display: block;
-    height: 24px;
+    height: 26px;
     width: auto;
-    max-width: 200px;
+    max-width: 220px;
 }
 h1 {
     margin: 0 0 14px;

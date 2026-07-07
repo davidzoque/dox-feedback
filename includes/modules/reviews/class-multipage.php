@@ -295,7 +295,7 @@ final class DXF_Multipage {
         ]);
         $logo_url  = ( ! empty($brand['enabled']) && ! empty($brand['logo']) )
             ? (string) $brand['logo']
-            : DXF_URL . 'assets/images/logo.svg';
+            : DXF_URL . 'assets/images/logo-white.svg'; // versión blanca: va directa sobre el degradado
         $logo_name = ( ! empty($brand['enabled']) && ! empty($brand['name']) )
             ? (string) $brand['name']
             : 'Dox Studio';
@@ -318,8 +318,8 @@ final class DXF_Multipage {
 
         /* Brand header — the orange gradient moment */
         .dxf-l-hero{background:linear-gradient(135deg,#ffa64f 0%,#ff8d27 52%,#f07300 100%);border-radius:16px;padding:26px 26px 24px;box-shadow:0 10px 30px rgba(240,115,0,.25);}
-        .dxf-l-logo{display:inline-flex;align-items:center;background:#fff;border-radius:12px;padding:9px 14px;box-shadow:0 2px 10px rgba(28,28,28,.14);margin:0 0 14px;}
-        .dxf-l-logo img{display:block;height:24px;width:auto;max-width:200px;}
+        .dxf-l-logo{display:block;margin:0 0 16px;}
+        .dxf-l-logo img{display:block;height:26px;width:auto;max-width:220px;}
         .dxf-l-head{margin:0 0 4px;font-size:24px;line-height:1.2;font-weight:800;letter-spacing:-.01em;color:#1c1c1c;text-wrap:balance;}
         .dxf-l-sub{margin:0 0 16px;color:#4a2c0e;font-size:13.5px;font-weight:500;}
         .dxf-l-progress{display:flex;align-items:center;gap:12px;}
