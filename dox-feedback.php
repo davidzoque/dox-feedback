@@ -3,7 +3,7 @@
  * Plugin Name: Dox Feedback
  * Plugin URI:  https://doxstudio.com
  * Description: Client feedback, visual review and approvals for WordPress — pinned comments, threaded replies, client sign-off, and shareable review links for a single page, several pages or a whole site, with email-invited reviewers and roles. Native to Bricks and Elementor; works on any WordPress site.
- * Version:     1.1.7
+ * Version:     1.1.8
  * Author:      Dox Studio
  * Author URI:  https://doxstudio.com
  * License:     GPL-2.0-or-later
@@ -26,7 +26,7 @@ if ( ! defined('ABSPATH') ) {
     exit;
 }
 
-define('DXF_VERSION',  '1.1.7');
+define('DXF_VERSION',  '1.1.8');
 define('DXF_DB_VERSION', '0.9.0');
 define('DXF_FILE',     __FILE__);
 define('DXF_DIR',      plugin_dir_path(__FILE__));

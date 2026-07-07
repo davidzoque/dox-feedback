@@ -771,7 +771,7 @@ msgid "Mark as resolved"
 msgstr "Marcar como resuelto"
 
 msgid "Mark as reviewed"
-msgstr "Marcar como revisado"
+msgstr "Solicitar estos cambios"
 
 msgid "Mark page as approved"
 msgstr "Marcar página como aprobada"
@@ -1121,7 +1121,7 @@ msgid "Review unavailable"
 msgstr "Revisión no disponible"
 
 msgid "Reviewed — undo"
-msgstr "Revisado — deshacer"
+msgstr "Cambios solicitados — deshacer"
 
 msgid "Reviewer"
 msgstr "Revisor"
