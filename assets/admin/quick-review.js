@@ -413,12 +413,15 @@
         document.body.appendChild(tip);
 
         function place() {
-            var r = node.getBoundingClientRect();
-            var left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 8));
+            var r  = node.getBoundingClientRect();
+            var tw = tip.offsetWidth;
+            var centre = r.left + r.width / 2;            // button centre (viewport X)
+            // Centre the tip under the button, then clamp inside the viewport.
+            var left = Math.max(8, Math.min(centre - tw / 2, window.innerWidth - tw - 8));
             tip.style.top  = (r.bottom + 9) + 'px';
             tip.style.left = left + 'px';
-            // Arrow points up at the button centre, clamped within the tip width.
-            var ax = Math.max(14, Math.min(r.left + r.width / 2 - left, tip.offsetWidth - 14));
+            // Arrow points up at the real button centre, kept within the tip.
+            var ax = Math.max(16, Math.min(centre - left, tw - 16));
             tip.style.setProperty('--rv-ab-arrow', ax + 'px');
         }
         function remove() {
@@ -432,7 +435,10 @@
             remove();
         }
 
-        place();
+        // Defer to the next frame so the admin bar and tip are laid out before
+        // we measure, then re-run once more after fonts / late layout settle.
+        requestAnimationFrame(place);
+        setTimeout(place, 300);
         window.addEventListener('resize', place);
         close.addEventListener('click', done);
         node.addEventListener('click', done, { once: true });
