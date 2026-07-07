@@ -18,8 +18,17 @@ $logo_url = DXF_URL . 'assets/images/logo.svg';
 <head>
 <meta charset="<?php bloginfo('charset'); ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title><?php echo esc_html__('Review unavailable', 'dox-feedback'); ?></title>
-<?php wp_head(); ?>
+<meta property="og:title" content="<?php echo esc_attr($project); ?>">
+<meta name="twitter:card" content="summary">
+<?php
+// Strip any <title> wp_head() injects so there's exactly one (ours above) —
+// a duplicate <title> breaks link-share previews.
+ob_start();
+wp_head();
+echo preg_replace('#<title\b[^>]*>.*?</title>#is', '', (string) ob_get_clean());
+?>
 </head>
 <body>
 <div class="rv-shell">

@@ -309,7 +309,19 @@ final class DXF_Multipage {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title><?php echo esc_html($title); ?></title>
-    <?php wp_head(); ?>
+    <meta property="og:title" content="<?php echo esc_attr($title); ?>">
+    <meta property="og:description" content="<?php echo esc_attr__('Click a page to open it and leave feedback.', 'dox-feedback'); ?>">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <?php
+    // Emit wp_head() but strip any <title> it injects. The theme (or an SEO
+    // plugin) would otherwise add a SECOND <title>, producing a malformed
+    // "…</title><title>…" that breaks link-share previews (WhatsApp, etc.).
+    // Our single <title> above is the source of truth.
+    ob_start();
+    wp_head();
+    echo preg_replace('#<title\b[^>]*>.*?</title>#is', '', (string) ob_get_clean());
+    ?>
     <style>
         /* Dox Studio brand — orange (#ff8d27), white, near-black ink. Ink text on
            the orange gradient (white fails WCAG AA on this hue; ink is ~8:1). */
