@@ -25,37 +25,20 @@ body {
     from { opacity: 0; transform: translateY(8px); }
 }
 .rv-brand {
-    width: 52px;
-    height: 52px;
-    margin: 0 auto 18px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #ffa64f 0%, #ff8d27 52%, #f07300 100%);
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 6px 18px rgba(240, 115, 0, .30);
-}
-.rv-brand svg {
-    width: 24px;
-    height: 24px;
-    color: #1c1c1c;
-    display: block;
-}
-.rv-brand--logo {
-    width: auto;
-    height: auto;
-    max-width: 200px;
+    margin: 0 auto 18px;
+    border-radius: 12px;
     background: #fff;
-    padding: 8px 12px;
+    padding: 9px 14px;
     border: 1px solid #eae5dd;
     box-shadow: 0 2px 10px rgba(28, 28, 28, .10);
 }
-.rv-brand--logo img {
+.rv-brand img {
     display: block;
-    max-height: 44px;
-    max-width: 176px;
+    height: 24px;
     width: auto;
-    height: auto;
+    max-width: 200px;
 }
 h1 {
     margin: 0 0 14px;
