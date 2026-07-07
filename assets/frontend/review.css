@@ -514,6 +514,23 @@ body.dxf-comment-mode .dxf-annot-canvas {
   color: var(--rv-danger, #e05252);
 }
 
+/* Brand CTA — the identity gate's primary action carries the Dox gradient,
+   matching the reviewer landing hero. Ink text for AA contrast on orange. */
+.dxf-identity .dxf-btn-primary {
+  background: linear-gradient(135deg, #ffa64f 0%, #ff8d27 52%, #f07300 100%);
+  border-color: #e57514;
+  color: #1c1c1c;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(240, 115, 0, .35);
+}
+.dxf-identity .dxf-btn-primary:hover {
+  filter: brightness(1.06);
+}
+.dxf-identity .dxf-btn-primary:focus-visible {
+  outline: 2px solid #1c1c1c;
+  outline-offset: 2px;
+}
+
 /* Back + Save row used by the change-name flow. */
 .dxf-identity-actions {
   display: flex;

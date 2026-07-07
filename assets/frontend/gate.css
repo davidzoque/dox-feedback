@@ -1,31 +1,89 @@
-/* Minimal reviewer gate / soft-error pages (email-gate, landing-error). */
+/* Reviewer gate / soft-error pages (landing-error) — Dox Studio brand:
+   warm surface, white card, orange-gradient brand chip, ink text. */
 body {
     margin: 0;
-    background: #f5f6f8;
-    color: #1a1d24;
+    background: #f6f3ee;
+    color: #1c1c1c;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 .rv-shell {
-    max-width: 480px;
-    margin: 80px auto;
-    padding: 0 16px;
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 72px 16px 48px;
     text-align: center;
 }
 .rv-card {
     background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 32px;
+    border: 1px solid #eae5dd;
+    border-radius: 16px;
+    padding: 36px 32px 30px;
+    box-shadow: 0 10px 32px rgba(28, 28, 28, .08);
+    animation: rvRise .34s ease-out both;
+}
+@keyframes rvRise {
+    from { opacity: 0; transform: translateY(8px); }
+}
+.rv-brand {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #ffa64f 0%, #ff8d27 52%, #f07300 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(240, 115, 0, .30);
+}
+.rv-brand svg {
+    width: 24px;
+    height: 24px;
+    color: #1c1c1c;
+    display: block;
+}
+.rv-brand--logo {
+    width: auto;
+    height: auto;
+    max-width: 200px;
+    background: #fff;
+    padding: 8px 12px;
+    border: 1px solid #eae5dd;
+    box-shadow: 0 2px 10px rgba(28, 28, 28, .10);
+}
+.rv-brand--logo img {
+    display: block;
+    max-height: 44px;
+    max-width: 176px;
+    width: auto;
+    height: auto;
 }
 h1 {
-    margin: 0 0 8px;
+    margin: 0 0 14px;
     font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    color: #1c1c1c;
+    text-wrap: balance;
 }
 p {
-    color: #6b7280;
+    color: #55524c;
     line-height: 1.55;
 }
 .rv-err {
-    color: #b91c1c;
+    margin: 0 0 6px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: #fdf0ee;
+    border: 1px solid #f3c9c2;
+    color: #a12f22;
     font-weight: 500;
+    font-size: 14px;
+}
+.rv-hint {
+    font-size: 13px;
+    margin: 20px 0 0;
+    color: #63676e;
+}
+@media (prefers-reduced-motion: reduce) {
+    .rv-card { animation: none; }
 }

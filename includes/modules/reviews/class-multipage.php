@@ -281,6 +281,29 @@ final class DXF_Multipage {
         }
         $total = count($rows);
 
+        // Hero brand mark — the CLIENT's own brand, mirroring the mailer's
+        // logic: Pro white-label logo (dxf_review_brand) first, then the site's
+        // Customizer logo, then the generic ink chat mark as fallback.
+        $brand = (array) apply_filters('dxf_review_brand', [
+            'enabled'   => false,
+            'name'      => '',
+            'logo'      => '',
+            'logoDark'  => '',
+            'logoLight' => '',
+            'color'     => '',
+            'textColor' => '',
+        ]);
+        $logo_url = ( ! empty($brand['enabled']) && ! empty($brand['logo']) ) ? (string) $brand['logo'] : '';
+        if ( $logo_url === '' ) {
+            $logo_id = (int) get_theme_mod('custom_logo');
+            if ( $logo_id ) {
+                $src = wp_get_attachment_image_src($logo_id, 'medium');
+                if ( is_array($src) && ! empty($src[0]) ) {
+                    $logo_url = (string) $src[0];
+                }
+            }
+        }
+
         nocache_headers();
         status_header(200);
         ?><!doctype html>
@@ -299,7 +322,9 @@ final class DXF_Multipage {
 
         /* Brand header — the orange gradient moment */
         .dxf-l-hero{background:linear-gradient(135deg,#ffa64f 0%,#ff8d27 52%,#f07300 100%);border-radius:16px;padding:26px 26px 24px;box-shadow:0 10px 30px rgba(240,115,0,.25);}
-        .dxf-l-brandrow{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
+        .dxf-l-brandrow{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 10px;}
+        .dxf-l-logo{flex:none;background:#fff;border-radius:12px;padding:8px 12px;display:flex;align-items:center;box-shadow:0 2px 10px rgba(28,28,28,.14);}
+        .dxf-l-logo img{display:block;max-height:38px;max-width:160px;width:auto;height:auto;}
         .dxf-l-mark{flex:none;width:34px;height:34px;border-radius:10px;background:#1c1c1c;display:flex;align-items:center;justify-content:center;}
         .dxf-l-mark svg{width:18px;height:18px;color:#ff8d27;display:block;}
         .dxf-l-head{margin:0;font-size:24px;line-height:1.2;font-weight:800;letter-spacing:-.01em;color:#1c1c1c;text-wrap:balance;}
@@ -350,9 +375,13 @@ final class DXF_Multipage {
         <?php $pct = (int) ( $total > 0 ? round($approved / $total * 100) : 0 ); ?>
         <header class="dxf-l-hero">
             <div class="dxf-l-brandrow">
-                <span class="dxf-l-mark" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                </span>
+                <?php if ( $logo_url !== '' ) : ?>
+                    <span class="dxf-l-logo"><img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr($title); ?>"></span>
+                <?php else : ?>
+                    <span class="dxf-l-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    </span>
+                <?php endif; ?>
                 <h1 class="dxf-l-head"><?php echo esc_html($title); ?></h1>
             </div>
             <p class="dxf-l-sub">
