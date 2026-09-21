@@ -27,7 +27,7 @@ final class DXF_Reviews_Admin {
 
     public function register_menu(): void {
         add_submenu_page(
-            DXF_Admin::parent_slug(), // Su menú de siempre, o ninguno dentro de Dox Plugins.
+            DXF_Admin::parent_slug(), // Su menú de siempre, o Dox Plugins (ahí no sale en el menú lateral: se llega por la barra de secciones).
             __('Reviews', 'dox-feedback'),
             __('Reviews', 'dox-feedback'),
             'edit_posts',
@@ -83,6 +83,7 @@ final class DXF_Reviews_Admin {
         if ( ! current_user_can('edit_posts') ) {
             wp_die(esc_html__('You do not have permission to view reviews.', 'dox-feedback'));
         }
+        DXF_Admin::sections_bar(); // La barra para pasar de una pantalla a otra, dentro de Dox Plugins.
         // Read-only screen routing — action/id only choose which view to render.
         // Mutating endpoints (create/edit) are AJAX and have their own nonces.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended

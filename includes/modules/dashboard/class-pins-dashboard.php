@@ -97,6 +97,7 @@ final class DXF_Pins_Dashboard {
         if ( ! current_user_can('edit_posts') ) {
             wp_die(esc_html__('You do not have permission to view feedback.', 'dox-feedback'));
         }
+        DXF_Admin::sections_bar(); // La barra para pasar de una pantalla a otra, dentro de Dox Plugins.
 
         // Read-only filters drive the WHERE clause; mutations are nonce'd AJAX.
         // phpcs:disable WordPress.Security.NonceVerification.Recommended

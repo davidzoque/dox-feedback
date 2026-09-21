@@ -27,7 +27,7 @@ final class DXF_Welcome {
     /** Permanent, re-openable submenu item under the Dox Feedback top-level menu. */
     public function register_page(): void {
         add_submenu_page(
-            DXF_Admin::parent_slug(), // Su menú de siempre, o ninguno dentro de Dox Plugins.
+            DXF_Admin::parent_slug(), // Su menú de siempre, o Dox Plugins (ahí no sale en el menú lateral: se llega por la barra de secciones).
             __('Getting Started', 'dox-feedback'),
             __('Getting Started', 'dox-feedback'),
             'manage_options',
@@ -79,6 +79,8 @@ final class DXF_Welcome {
         if ( ! current_user_can('manage_options') ) {
             return;
         }
+
+        DXF_Admin::sections_bar(); // La barra para pasar de una pantalla a otra, dentro de Dox Plugins.
 
         $reviews_url   = admin_url('admin.php?page=dxf-reviews');
         $approvals_url = admin_url('admin.php?page=dxf-approvals');

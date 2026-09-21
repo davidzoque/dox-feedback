@@ -19,12 +19,13 @@
 
 /* ---------------------------------------------------------------------------
    La barra de secciones: arriba de las cinco pantallas cuando Dox Feedback
-   cuelga de Dox Plugins (DXF_Admin::render_sections). Un control segmentado:
+   cuelga de Dox Plugins (DXF_Admin::sections_bar). Un control segmentado:
    la sección abierta, en blanco sobre el carril gris.
 --------------------------------------------------------------------------- */
 .dxf-sections-wrap { padding: 16px 20px 0 2px; }
 .dxf-sections-wrap + .notice, .dxf-sections-wrap ~ .wrap { clear: both; }
 .dxf-sections {
+  position: relative; /* Para medir dónde cae la sección abierta al traerla a la vista. */
   display: flex;
   gap: 2px;
   width: max-content;
@@ -36,6 +37,13 @@
   scrollbar-width: none;
 }
 .dxf-sections::-webkit-scrollbar { display: none; }
+/* Cuando no cabe (el teléfono) se desliza, y el borde se difumina hacia donde quedan secciones por ver. */
+.dxf-sections.is-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.dxf-sections.is-less { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+/* De derecha a izquierda lo que queda por ver está al otro lado. */
+.rtl .dxf-sections.is-more:not(.is-less) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.rtl .dxf-sections.is-less:not(.is-more) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.dxf-sections.is-more.is-less { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 .dxf-sections__item {
   flex: none;
   padding: 7px 15px;

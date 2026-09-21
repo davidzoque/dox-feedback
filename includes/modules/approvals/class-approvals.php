@@ -38,7 +38,7 @@ class DXF_Approvals {
      */
     public function register_menu(): void {
         add_submenu_page(
-            DXF_Admin::parent_slug(), // Su menú de siempre, o ninguno dentro de Dox Plugins.
+            DXF_Admin::parent_slug(), // Su menú de siempre, o Dox Plugins (ahí no sale en el menú lateral: se llega por la barra de secciones).
             __('Approvals', 'dox-feedback'),
             __('Approvals', 'dox-feedback'),
             'manage_options',
@@ -56,6 +56,7 @@ class DXF_Approvals {
         if ( ! current_user_can('manage_options') ) {
             wp_die(esc_html__('You do not have permission to view approvals.', 'dox-feedback'));
         }
+        DXF_Admin::sections_bar(); // La barra para pasar de una pantalla a otra, dentro de Dox Plugins.
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e('Approvals', 'dox-feedback'); ?></h1>

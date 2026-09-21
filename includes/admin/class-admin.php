@@ -14,9 +14,11 @@ class DXF_Admin {
         // cualquiera de las cinco pantallas, y arriba sale la barra para pasar de una a otra.
         add_action('admin_head',             [$this, 'tuck_sections']);
         add_filter('submenu_file',           [$this, 'highlight_submenu']);
-        // Dentro del cuerpo de la página (all_admin_notices) y no en in_admin_header: en el teléfono
-        // WordPress deja el hueco de su barra superior solo en el cuerpo, y arriba quedaría tapada.
-        add_action('all_admin_notices',      [$this, 'render_sections'], 1);
+        // La barra de secciones la pinta cada pantalla al empezar (sections_bar), dentro del cuerpo de
+        // la página: en in_admin_header, en el teléfono, quedaría tapada por la barra superior de
+        // WordPress; y colgada de los avisos del escritorio se la llevaría cualquier plugin que los esconda.
+        // Un enlace guardado a la antigua pestaña Ajustes > Approvals se reenvía antes de pintar nada.
+        add_action('admin_init',             [$this, 'redirect_legacy_approvals_tab']);
         // Late pass (after every module has registered its submenu) to rename
         // the auto-generated "Dox Feedback" duplicate to "Settings" and sink it to the
         // bottom of the submenu.
@@ -94,7 +96,7 @@ class DXF_Admin {
             'summary' => __('Client feedback and approvals: collect comments on the site and turn them into decisions.', 'dox-feedback'),
             'page'    => [
                 'page_title' => __('Dox Feedback', 'dox-feedback'),
-                'menu_title' => __('Feedback', 'dox-feedback'),
+                'menu_title' => 'Feedback', // Sin traducir: en ese menú es el nombre del producto, junto a POS y Sales Booster; traducido decía "Comentarios", como el menú de WordPress.
                 'capability' => 'edit_posts', // Los editores también responden comentarios, como antes.
                 'menu_slug'  => DXF_Pins_Dashboard::MENU_SLUG,
                 'callback'   => ['DXF_Pins_Dashboard', 'render_page'],
@@ -160,16 +162,16 @@ class DXF_Admin {
      * Quita del menú lateral las cuatro pantallas que se recorren con la barra.
      * Va en admin_head porque para entonces WordPress ya comprobó el permiso de la
      * pantalla y calculó su título, que necesitan verlas colgadas del menú, y todavía
-     * no ha pintado el menú. Si el menú se reapuntó (a quien no puede ver la portada,
-     * WordPress le abre directamente la primera entrada que sí puede), sus entradas
-     * viven bajo esa otra clave.
+     * no ha pintado el menú. A quien no puede ver la portada (un editor), WordPress
+     * le apunta "Dox Plugins" a la primera entrada que sí puede abrir, pero las
+     * entradas siguen colgando de la misma clave.
      */
     public function tuck_sections(): void {
         if ( ! self::in_dox_menu() ) {
             return;
         }
-        global $submenu, $_wp_real_parent_file;
-        $parent = $_wp_real_parent_file['dox-plugins'] ?? 'dox-plugins';
+        global $submenu;
+        $parent = self::parent_slug();
         if ( empty($submenu[ $parent ]) || ! is_array($submenu[ $parent ]) ) {
             return;
         }
@@ -190,14 +192,42 @@ class DXF_Admin {
     }
 
     /**
+     * La antigua pestaña Ajustes > Approvals pasó a ser una pantalla propia. El enlace
+     * guardado se reenvía aquí, en admin_init, antes de que salga nada: hacerlo desde
+     * dentro de la página (como respaldo sigue en DXF_Settings) solo funciona donde
+     * PHP guarda la página entera en memoria; con el búfer normal de 4 KB las
+     * cabeceras ya se han ido y la página se quedaba cortada.
+     */
+    public function redirect_legacy_approvals_tab(): void {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Solo se leen page y tab para reenviar.
+        $page = isset($_GET['page']) ? sanitize_key((string) wp_unslash($_GET['page'])) : '';
+        $tab  = isset($_GET['tab'])  ? sanitize_key((string) wp_unslash($_GET['tab']))  : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        if ( $page !== 'dox-feedback' || $tab !== 'approvals' || wp_doing_ajax() || ! current_user_can('manage_options') ) {
+            return;
+        }
+        wp_safe_redirect(admin_url('admin.php?page=' . DXF_Approvals::MENU_SLUG));
+        exit;
+    }
+
+    /** ¿Ya salió la barra de secciones en esta página? */
+    private static bool $sections_done = false;
+
+    /**
      * La barra de secciones, arriba de las cinco pantallas cuando cuelgan de Dox
      * Plugins: el menú lateral solo dice "Feedback", así que el resto se alcanza
      * desde aquí. Solo salen las que el usuario puede abrir.
+     *
+     * La pide cada pantalla al empezar a pintarse, y sale una sola vez. No cuelga del
+     * gancho de los avisos del escritorio a propósito: hay plugins y fragmentos que lo
+     * vacían (o que guardan esa zona y la tiran) para esconder avisos a los clientes,
+     * y sin barra cuatro de las cinco pantallas se quedarían sin ningún enlace.
      */
-    public function render_sections(): void {
-        if ( ! self::in_dox_menu() || ! self::on_section() ) {
+    public static function sections_bar(): void {
+        if ( self::$sections_done || ! self::in_dox_menu() || ! self::on_section() ) {
             return;
         }
+        self::$sections_done = true;
         global $plugin_page;
         $items = array_filter(self::sections(), static fn( $s ) => current_user_can($s[1]));
         if ( count($items) < 2 ) {
@@ -216,13 +246,25 @@ class DXF_Admin {
                 esc_html($section[0])
             );
         }
-        echo '</nav></div>';
+        echo '</nav>';
+        // En el teléfono las cinco no caben y la barra se desliza: la sección abierta se trae a la vista, y un
+        // degradado en el borde avisa de que hay más a ese lado. El desplazamiento se mide en valor absoluto y
+        // no se recorta a mano, porque de derecha a izquierda va de cero hacia los negativos. Va dentro del
+        // contenedor para que lo que sigue a la barra siga siendo su hermano inmediato en el CSS.
+        wp_print_inline_script_tag(
+            '(function(){var n=document.querySelector(".dxf-sections");if(!n){return;}var c=n.querySelector(".is-current");'
+            . 'function f(){var s=Math.abs(n.scrollLeft);n.classList.toggle("is-more",n.scrollWidth-n.clientWidth-s>4);n.classList.toggle("is-less",s>4);}'
+            . 'if(c){n.scrollLeft=c.offsetLeft-(n.clientWidth-c.offsetWidth)/2;}'
+            . 'f();n.addEventListener("scroll",f,{passive:true});window.addEventListener("resize",f);})();'
+        );
+        echo '</div>';
     }
 
     public function render_settings(): void {
         if ( ! current_user_can('manage_options') ) {
             return;
         }
+        self::sections_bar();
         $settings = new DXF_Settings();
         $settings->render();
     }
@@ -306,7 +348,8 @@ class DXF_Admin {
         }
 
         // Los ajustes: toplevel_page_dox-feedback con su propio menú, dox-plugins_page_dox-feedback dentro de Dox Plugins.
-        if ( ! in_array($hook, ['toplevel_page_dox-feedback', 'dox-plugins_page_dox-feedback'], true) ) {
+        // Se mira solo el final: el principio sale del título del menú de arriba, que cambia si alguien lo traduce.
+        if ( ! preg_match('/_page_dox-feedback$/', $hook) ) {
             return;
         }
 
