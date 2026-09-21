@@ -23,6 +23,14 @@ $logo      = $this->logo_svg();
 		<?php endif; ?>
 	</div>
 
+	<?php
+	// WordPress mueve los avisos de otros plugins al primer título de la página,
+	// y sin esto acaban metidos dentro de la primera tarjeta. El h1 solo lo leen
+	// los lectores de pantalla; el hr marca dónde van los avisos.
+	?>
+	<h1 class="screen-reader-text"><?php esc_html_e( 'Dox Plugins', 'dox-core' ); ?></h1>
+	<hr class="wp-header-end">
+
 	<p class="dox-core-lead"><?php esc_html_e( 'Every Dox Studio plugin on this site, in one place.', 'dox-core' ); ?></p>
 
 	<div class="dox-core-grid">
@@ -55,6 +63,7 @@ $logo      = $this->logo_svg();
 .dox-core-logo { display: block; line-height: 0; }
 .dox-core-logo svg { height: 30px; width: auto; display: block; }
 .dox-core-logo-text { font-size: 22px; font-weight: 700; color: var(--dox-ink); }
+.dox-core-wrap .wp-header-end { display: none; }
 .dox-core-lead { color: #646970; margin: 0 0 26px; font-size: 14px; }
 .dox-core-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
 .dox-core-card { background: #fff; border: 1px solid #e2e4e7; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
