@@ -1,0 +1,36 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Dox Core 1.0.0\n"
+"Report-Msgid-Bugs-To: https://doxstudio.com\n"
+"PO-Revision-Date: 2026-09-20 18:40+0000\n"
+"Last-Translator: Dox Studio <hola@doxstudio.com>\n"
+"Language-Team: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: dox-core\n"
+
+#: dox-core.php views/dashboard.php
+msgid "Dox Plugins"
+msgstr "Dox Plugins"
+
+#: dox-core.php
+msgid "Installed"
+msgstr "Instalados"
+
+#: views/dashboard.php
+msgid "Every Dox Studio plugin on this site, in one place."
+msgstr "Todos los plugins de Dox Studio de esta web, en un solo lugar."
+
+#: views/dashboard.php
+msgid "Settings"
+msgstr "Ajustes"
+
+#: views/dashboard.php
+
+#: dox-core.php
+msgid "Code snippets with no risk of breaking the site editing functions.php."
+msgstr "Fragmentos de código sin el riesgo de romper el sitio editando functions.php."
+

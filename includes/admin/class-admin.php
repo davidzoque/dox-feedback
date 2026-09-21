@@ -9,6 +9,7 @@ class DXF_Admin {
 
     public function __construct() {
         add_action('admin_menu',             [$this, 'register_menu']);
+        add_action('dox_core_register',      [$this, 'register_in_dox_menu']);
         // Late pass (after every module has registered its submenu) to rename
         // the auto-generated "Dox Feedback" duplicate to "Settings" and sink it to the
         // bottom of the submenu.
@@ -30,6 +31,22 @@ class DXF_Admin {
         add_action('admin_post_dxf_save_general',       ['DXF_Settings', 'save_general']);
         add_action('admin_post_dxf_save_comments',      ['DXF_Settings', 'save_comments']);
         add_action('admin_post_dxf_save_notifications', ['DXF_Settings', 'save_notifications']);
+    }
+
+    /**
+     * Sale en la portada de "Dox Plugins" junto al resto de plugins de Dox
+     * Studio, pero conserva su propio menú: tiene cinco pantallas (Getting
+     * Started, Reviews, Approvals, Pins y Settings) y meterlas dentro de otro
+     * menú dejaría las dos listas revueltas.
+     */
+    public function register_in_dox_menu( $core ): void {
+        $core->register_plugin([
+            'slug'         => 'dox-feedback',
+            'name'         => __('Dox Feedback', 'dox-feedback'),
+            'version'      => DXF_VERSION,
+            'summary'      => __('Client feedback and approvals: collect comments on the site and turn them into decisions.', 'dox-feedback'),
+            'settings_url' => 'admin.php?page=dox-feedback',
+        ]);
     }
 
     public function register_menu(): void {

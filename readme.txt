@@ -4,7 +4,7 @@ Tags: client feedback, website feedback, approvals, bricks, elementor
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.3
+Stable tag: 1.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,9 @@ Yes. A review can cover a single page, a selection of pages, or the entire site 
 In your own WordPress database (`wp_dxf_*` tables). Nothing is transmitted off-site.
 
 == Changelog ==
+
+= 1.1.12 =
+* New: Dox Feedback now shows up in the shared **Dox Plugins** menu, alongside the other Dox Studio plugins, with a link to its settings. Its own menu stays exactly where it was: with five screens of its own, folding them into another menu would only mix two lists. The shared code travels inside each plugin, so nothing depends on anything else and only the newest copy runs.
 
 = 1.0.3 =
 * Security: guest reviewer actions are now scoped to the reviewer's own review. Editing, deleting, resolving, reacting to, repositioning, attaching a screenshot to, or replying to a comment can no longer reach another review's comments on a page that two reviews happen to share.
