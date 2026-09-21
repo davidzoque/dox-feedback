@@ -4,7 +4,7 @@ Tags: client feedback, website feedback, approvals, bricks, elementor
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.1.12
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,10 @@ Yes. A review can cover a single page, a selection of pages, or the entire site 
 In your own WordPress database (`wp_dxf_*` tables). Nothing is transmitted off-site.
 
 == Changelog ==
+
+= 1.2.0 =
+* Changed: Dox Feedback now lives inside the shared **Dox Plugins** menu, as one entry, "Feedback", instead of a menu of its own. It opens the feedback inbox, and a bar at the top of every screen moves between Feedback, Reviews, Approvals, Getting Started and Settings. The addresses of the screens do not change, so bookmarks and the links in the emails keep working. If the shared menu ever failed to load, the plugin goes back to its own menu.
+* The Dox Plugins menu now lists its plugins in alphabetical order, and each card opens the plugin ("Open") instead of saying "Settings".
 
 = 1.1.12 =
 * New: Dox Feedback now shows up in the shared **Dox Plugins** menu, alongside the other Dox Studio plugins, with a link to its settings. Its own menu stays exactly where it was: with five screens of its own, folding them into another menu would only mix two lists. The shared code travels inside each plugin, so nothing depends on anything else and only the newest copy runs.

@@ -10,6 +10,13 @@ class DXF_Admin {
     public function __construct() {
         add_action('admin_menu',             [$this, 'register_menu']);
         add_action('dox_core_register',      [$this, 'register_in_dox_menu']);
+        // Dentro de Dox Plugins: el menú enseña solo "Feedback", que se queda marcada en
+        // cualquiera de las cinco pantallas, y arriba sale la barra para pasar de una a otra.
+        add_action('admin_head',             [$this, 'tuck_sections']);
+        add_filter('submenu_file',           [$this, 'highlight_submenu']);
+        // Dentro del cuerpo de la página (all_admin_notices) y no en in_admin_header: en el teléfono
+        // WordPress deja el hueco de su barra superior solo en el cuerpo, y arriba quedaría tapada.
+        add_action('all_admin_notices',      [$this, 'render_sections'], 1);
         // Late pass (after every module has registered its submenu) to rename
         // the auto-generated "Dox Feedback" duplicate to "Settings" and sink it to the
         // bottom of the submenu.
@@ -34,22 +41,80 @@ class DXF_Admin {
     }
 
     /**
-     * Sale en la portada de "Dox Plugins" junto al resto de plugins de Dox
-     * Studio, pero conserva su propio menú: tiene cinco pantallas (Getting
-     * Started, Reviews, Approvals, Pins y Settings) y meterlas dentro de otro
-     * menú dejaría las dos listas revueltas.
+     * ¿Está el menú común de Dox Plugins? Lo trae la carpeta dox-core, que viaja
+     * dentro de este plugin, así que casi siempre sí; si no cargara, el plugin
+     * vuelve a su propio menú para no quedarse inalcanzable.
+     */
+    public static function in_dox_menu(): bool {
+        return function_exists('dox_core');
+    }
+
+    /**
+     * De qué menú cuelgan las pantallas: de Dox Plugins, o sin él del menú "Dox
+     * Feedback" de siempre. Dentro de Dox Plugins cuelgan de verdad (así WordPress
+     * sabe dónde están, abre el menú y pone el título), pero solo se ve "Feedback":
+     * las otras cuatro se quitan de la lista justo antes de pintarla (tuck_sections).
+     * Las direcciones no cambian en ningún caso: admin.php?page=...
+     */
+    public static function parent_slug(): string {
+        return self::in_dox_menu() ? 'dox-plugins' : 'dox-feedback';
+    }
+
+    /**
+     * Las cinco pantallas, en el orden de la barra: slug => [etiqueta, permiso].
+     * Primero lo del día (los comentarios, las revisiones, las aprobaciones) y al
+     * final la bienvenida y los ajustes.
+     */
+    public static function sections(): array {
+        return [
+            'dxf-feedback'        => [__('Feedback', 'dox-feedback'), 'edit_posts'],
+            'dxf-reviews'         => [__('Reviews', 'dox-feedback'), 'edit_posts'],
+            'dxf-approvals'       => [__('Approvals', 'dox-feedback'), 'manage_options'],
+            'dxf-getting-started' => [__('Getting Started', 'dox-feedback'), 'manage_options'],
+            'dox-feedback'        => [__('Settings', 'dox-feedback'), 'manage_options'],
+        ];
+    }
+
+    /** ¿La pantalla abierta es una de las cinco? */
+    private static function on_section(): bool {
+        global $plugin_page;
+        return is_string($plugin_page) && isset(self::sections()[ $plugin_page ]);
+    }
+
+    /**
+     * Una entrada en Dox Plugins, "Feedback", que abre la bandeja de comentarios:
+     * es lo que se usa cada día. Las otras cuatro pantallas no llenan ese menú;
+     * se llega a ellas con la barra de secciones de arriba.
      */
     public function register_in_dox_menu( $core ): void {
         $core->register_plugin([
-            'slug'         => 'dox-feedback',
-            'name'         => __('Dox Feedback', 'dox-feedback'),
-            'version'      => DXF_VERSION,
-            'summary'      => __('Client feedback and approvals: collect comments on the site and turn them into decisions.', 'dox-feedback'),
-            'settings_url' => 'admin.php?page=dox-feedback',
+            'slug'    => 'dox-feedback',
+            'name'    => __('Dox Feedback', 'dox-feedback'),
+            'version' => DXF_VERSION,
+            'summary' => __('Client feedback and approvals: collect comments on the site and turn them into decisions.', 'dox-feedback'),
+            'page'    => [
+                'page_title' => __('Dox Feedback', 'dox-feedback'),
+                'menu_title' => __('Feedback', 'dox-feedback'),
+                'capability' => 'edit_posts', // Los editores también responden comentarios, como antes.
+                'menu_slug'  => DXF_Pins_Dashboard::MENU_SLUG,
+                'callback'   => ['DXF_Pins_Dashboard', 'render_page'],
+            ],
         ]);
     }
 
     public function register_menu(): void {
+        if ( self::in_dox_menu() ) {
+            // Los ajustes, dentro de Dox Plugins pero sin entrada a la vista: se abren desde la barra de secciones.
+            add_submenu_page(
+                self::parent_slug(),
+                __('Dox Feedback – Client Feedback & Approvals', 'dox-feedback'),
+                __('Settings', 'dox-feedback'),
+                'manage_options',
+                'dox-feedback',
+                [$this, 'render_settings']
+            );
+            return;
+        }
         add_menu_page(
             __('Dox Feedback – Client Feedback & Approvals', 'dox-feedback'),
             __('Dox Feedback', 'dox-feedback'),
@@ -89,6 +154,69 @@ class DXF_Admin {
             }
         }
         $items = array_values($items);     // re-key so WP renders in order
+    }
+
+    /**
+     * Quita del menú lateral las cuatro pantallas que se recorren con la barra.
+     * Va en admin_head porque para entonces WordPress ya comprobó el permiso de la
+     * pantalla y calculó su título, que necesitan verlas colgadas del menú, y todavía
+     * no ha pintado el menú. Si el menú se reapuntó (a quien no puede ver la portada,
+     * WordPress le abre directamente la primera entrada que sí puede), sus entradas
+     * viven bajo esa otra clave.
+     */
+    public function tuck_sections(): void {
+        if ( ! self::in_dox_menu() ) {
+            return;
+        }
+        global $submenu, $_wp_real_parent_file;
+        $parent = $_wp_real_parent_file['dox-plugins'] ?? 'dox-plugins';
+        if ( empty($submenu[ $parent ]) || ! is_array($submenu[ $parent ]) ) {
+            return;
+        }
+        $hidden = array_diff(array_keys(self::sections()), [DXF_Pins_Dashboard::MENU_SLUG]);
+        foreach ( $submenu[ $parent ] as $key => $item ) {
+            if ( isset($item[2]) && in_array($item[2], $hidden, true) ) {
+                unset($submenu[ $parent ][ $key ]);
+            }
+        }
+    }
+
+    /** Dentro de Dox Plugins, la entrada marcada es "Feedback" en cualquiera de las cinco pantallas. */
+    public function highlight_submenu( $submenu_file ) {
+        if ( ! self::in_dox_menu() || ! self::on_section() ) {
+            return $submenu_file;
+        }
+        return DXF_Pins_Dashboard::MENU_SLUG;
+    }
+
+    /**
+     * La barra de secciones, arriba de las cinco pantallas cuando cuelgan de Dox
+     * Plugins: el menú lateral solo dice "Feedback", así que el resto se alcanza
+     * desde aquí. Solo salen las que el usuario puede abrir.
+     */
+    public function render_sections(): void {
+        if ( ! self::in_dox_menu() || ! self::on_section() ) {
+            return;
+        }
+        global $plugin_page;
+        $items = array_filter(self::sections(), static fn( $s ) => current_user_can($s[1]));
+        if ( count($items) < 2 ) {
+            return;
+        }
+        // El contenedor lleva el aire de arriba como relleno: un margen en la barra se saldría
+        // de #wpcontent y bajaría también el menú lateral.
+        echo '<div class="dxf-sections-wrap"><nav class="dxf-sections" aria-label="' . esc_attr__('Dox Feedback', 'dox-feedback') . '">';
+        foreach ( $items as $slug => $section ) {
+            $on = $slug === $plugin_page;
+            printf(
+                '<a class="dxf-sections__item%1$s" href="%2$s"%3$s>%4$s</a>',
+                $on ? ' is-current' : '',
+                esc_url(admin_url('admin.php?page=' . $slug)),
+                $on ? ' aria-current="page"' : '',
+                esc_html($section[0])
+            );
+        }
+        echo '</nav></div>';
     }
 
     public function render_settings(): void {
@@ -155,12 +283,15 @@ class DXF_Admin {
     public function enqueue_assets(string $hook): void {
         // The admin menu icon is visible on every admin screen, so this one
         // stylesheet is enqueued globally (before the page-specific return).
-        wp_enqueue_style(
-            'dxf-menu-icon',
-            DXF_URL . 'assets/admin/menu-icon.css',
-            [],
-            DXF_VERSION
-        );
+        // Dentro de Dox Plugins no hay menú propio, ni icono que pintar.
+        if ( ! self::in_dox_menu() ) {
+            wp_enqueue_style(
+                'dxf-menu-icon',
+                DXF_URL . 'assets/admin/menu-icon.css',
+                [],
+                DXF_VERSION
+            );
+        }
 
         // Dox Studio brand stylesheet (tokens + header + orange accents) loads
         // on every Dox Feedback admin screen — Settings, Getting Started,
@@ -174,7 +305,8 @@ class DXF_Admin {
             );
         }
 
-        if ( $hook !== 'toplevel_page_dox-feedback' ) {
+        // Los ajustes: toplevel_page_dox-feedback con su propio menú, dox-plugins_page_dox-feedback dentro de Dox Plugins.
+        if ( ! in_array($hook, ['toplevel_page_dox-feedback', 'dox-plugins_page_dox-feedback'], true) ) {
             return;
         }
 

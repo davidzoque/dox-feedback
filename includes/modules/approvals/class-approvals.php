@@ -38,7 +38,7 @@ class DXF_Approvals {
      */
     public function register_menu(): void {
         add_submenu_page(
-            'dox-feedback',
+            DXF_Admin::parent_slug(), // Su menú de siempre, o ninguno dentro de Dox Plugins.
             __('Approvals', 'dox-feedback'),
             __('Approvals', 'dox-feedback'),
             'manage_options',

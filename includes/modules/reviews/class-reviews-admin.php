@@ -27,7 +27,7 @@ final class DXF_Reviews_Admin {
 
     public function register_menu(): void {
         add_submenu_page(
-            'dox-feedback',
+            DXF_Admin::parent_slug(), // Su menú de siempre, o ninguno dentro de Dox Plugins.
             __('Reviews', 'dox-feedback'),
             __('Reviews', 'dox-feedback'),
             'edit_posts',

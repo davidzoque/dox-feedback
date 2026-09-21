@@ -50,7 +50,7 @@ $logo      = $this->logo_svg();
 					<p><?php echo esc_html( $plugin['summary'] ); ?></p>
 				<?php endif; ?>
 				<?php if ( $link ) : ?>
-					<a class="button button-primary" href="<?php echo esc_url( $link ); ?>"><?php esc_html_e( 'Settings', 'dox-core' ); ?></a>
+					<a class="button button-primary" href="<?php echo esc_url( $link ); ?>"><?php esc_html_e( 'Open', 'dox-core' ); ?></a>
 				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>

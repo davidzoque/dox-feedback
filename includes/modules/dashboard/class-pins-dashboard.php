@@ -21,12 +21,26 @@ final class DXF_Pins_Dashboard {
     public const MENU_SLUG = 'dxf-feedback';
     private const PER_PAGE  = 25;
 
+    /** La instancia, para que el menú común de Dox Plugins pueda pintar esta pantalla. */
+    private static ?self $instance = null;
+
     public function __construct() {
+        self::$instance = $this;
         add_action('admin_menu',            [$this, 'register_menu'], 15);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
     }
 
+    /** La pantalla, llamada desde la entrada "Feedback" de Dox Plugins. */
+    public static function render_page(): void {
+        if ( self::$instance ) {
+            self::$instance->render();
+        }
+    }
+
     public function register_menu(): void {
+        if ( DXF_Admin::in_dox_menu() ) {
+            return; // Su entrada la crea Dox Plugins (DXF_Admin::register_in_dox_menu).
+        }
         add_submenu_page(
             'dox-feedback',
             __('Feedback', 'dox-feedback'),

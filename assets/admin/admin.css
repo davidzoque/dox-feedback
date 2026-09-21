@@ -18,6 +18,54 @@
 }
 
 /* ---------------------------------------------------------------------------
+   La barra de secciones: arriba de las cinco pantallas cuando Dox Feedback
+   cuelga de Dox Plugins (DXF_Admin::render_sections). Un control segmentado:
+   la sección abierta, en blanco sobre el carril gris.
+--------------------------------------------------------------------------- */
+.dxf-sections-wrap { padding: 16px 20px 0 2px; }
+.dxf-sections-wrap + .notice, .dxf-sections-wrap ~ .wrap { clear: both; }
+.dxf-sections {
+  display: flex;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+  padding: 3px;
+  background: #eceef1;
+  border-radius: 11px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dxf-sections::-webkit-scrollbar { display: none; }
+.dxf-sections__item {
+  flex: none;
+  padding: 7px 15px;
+  border-radius: 8px;
+  color: #50575e;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.dxf-sections__item:hover,
+.dxf-sections__item:focus { color: var(--dox-text); }
+.dxf-sections__item:focus { box-shadow: none; outline: none; }
+.dxf-sections__item:focus-visible { box-shadow: 0 0 0 2px var(--dox-orange); }
+.dxf-sections__item.is-current {
+  background: #fff;
+  color: var(--dox-text);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 .5px rgba(0,0,0,.04);
+}
+@media (max-width: 782px) {
+  .dxf-sections-wrap { padding: 12px 12px 0 0; }
+  .dxf-sections__item { padding: 9px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dxf-sections__item { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
    Branded header bar — logo + product pill. Reused on Settings and Getting
    Started (markup: DXF_Admin::brand_header()).
 --------------------------------------------------------------------------- */

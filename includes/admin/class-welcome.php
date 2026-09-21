@@ -27,7 +27,7 @@ final class DXF_Welcome {
     /** Permanent, re-openable submenu item under the Dox Feedback top-level menu. */
     public function register_page(): void {
         add_submenu_page(
-            'dox-feedback',
+            DXF_Admin::parent_slug(), // Su menú de siempre, o ninguno dentro de Dox Plugins.
             __('Getting Started', 'dox-feedback'),
             __('Getting Started', 'dox-feedback'),
             'manage_options',

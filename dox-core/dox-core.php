@@ -100,10 +100,11 @@ class Dox_Core {
 	/**
 	 * Apunta un plugin en el menú común.
 	 *
-	 * Un plugin de una sola pantalla pasa 'page' y el core le crea el submenú.
-	 * Uno que ya tiene su propio menú (Dox Feedback) o que vive en otro sitio
-	 * (Dox POS, bajo WooCommerce) pasa 'settings_url' y solo sale en la portada,
-	 * que es como Crocoblock lista sus plugins grandes sin moverlos de su menú.
+	 * Un plugin pasa 'page' y el core le crea su entrada en el menú: una por
+	 * plugin, aunque tenga varias pantallas (Dox Feedback enseña las demás con
+	 * su propia barra de secciones, para no llenar este menú). Uno que prefiera
+	 * quedarse en otro sitio pasa solo 'settings_url' y sale únicamente en la
+	 * portada, con su enlace.
 	 *
 	 * @param array $args slug, name, version, summary, url, settings_url y
 	 *                    (opcional) page: menu_title, page_title, capability,
@@ -154,6 +155,12 @@ class Dox_Core {
 		do_action( 'dox_core_register', $this );
 
 		if ( ! $this->plugins ) return; // nada que enseñar
+
+		// Por orden alfabético, en el menú y en la portada: el orden en que se
+		// apuntan depende de cuándo carga cada plugin y cambiaba de un sitio a otro.
+		uasort( $this->plugins, function ( $a, $b ) {
+			return strnatcasecmp( $a['name'], $b['name'] );
+		} );
 
 		// Con un solo plugin que además vive en su propio menú, este menú sería
 		// una entrada de más para enseñar un enlace: no se crea.
