@@ -1,6 +1,6 @@
 <?php
 /**
- * Dox Core — el menú común de los plugins de Dox Studio.
+ * Dox Core: el menú común de los plugins de Dox Studio.
  *
  * Junta todos los plugins Dox bajo un solo menú "Dox Plugins" en vez de que
  * cada uno cuelgue su propia entrada del menú principal de WordPress. Cada
@@ -40,7 +40,6 @@ if ( ! class_exists( 'Dox_Core' ) ) :
 
 class Dox_Core {
 
-	const VERSION   = '1.0.0';
 	const MENU_SLUG = 'dox-plugins';
 
 	private static $instance = null;
@@ -73,8 +72,26 @@ class Dox_Core {
 		return $this->path;
 	}
 
+	/**
+	 * Versión de la copia que ha ganado. Se escribe solo en version.php.
+	 */
+	public function version() {
+		$file = $this->path . 'version.php';
+
+		return file_exists( $file ) ? (string) require $file : '';
+	}
+
 	public function load_textdomain() {
-		$mofile = $this->path . 'languages/dox-core-' . determine_locale() . '.mo';
+		$locale = determine_locale();
+		$mofile = $this->path . 'languages/dox-core-' . $locale . '.mo';
+
+		// WordPress no pasa de es_CO o es_MX a es_ES por su cuenta, y casi todas
+		// las tiendas de Dox Studio están en alguna variante del español: sin
+		// esto verían el menú en inglés.
+		if ( ! file_exists( $mofile ) && preg_match( '/^es(_|$)/', $locale ) ) {
+			$mofile = $this->path . 'languages/dox-core-es_ES.mo';
+		}
+
 		if ( file_exists( $mofile ) ) {
 			load_textdomain( 'dox-core', $mofile );
 		}

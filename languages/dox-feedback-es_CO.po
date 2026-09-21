@@ -1700,3 +1700,7 @@ msgstr "🎉 Dox Feedback se actualizó a la v%s: esto es lo nuevo:"
 
 msgid "👋 This is Dox Feedback. Click here to leave feedback on this page."
 msgstr "👋 Esto es Dox Feedback. Haz clic aquí para dejar comentarios en esta página."
+
+#: includes/admin/class-admin.php
+msgid "Client feedback and approvals: collect comments on the site and turn them into decisions."
+msgstr "Comentarios y aprobaciones de clientes: recoge los comentarios sobre el sitio y conviértelos en decisiones."

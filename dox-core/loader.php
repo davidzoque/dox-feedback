@@ -1,6 +1,6 @@
 <?php
 /**
- * Dox Core — cargador.
+ * Dox Core: cargador.
  *
  * Cada plugin de Dox Studio lleva su propia copia de esta carpeta, igual que
  * Crocoblock hace con su framework: así ningún plugin depende de otro y todos
@@ -15,7 +15,17 @@
  * Uso desde el plugin (antes de after_setup_theme, o sea al cargarse):
  *
  *     require_once __DIR__ . '/dox-core/loader.php';
- *     Dox_Core_Loader::register( '1.0.0', __DIR__ . '/dox-core/dox-core.php' );
+ *     Dox_Core_Loader::register(
+ *         require __DIR__ . '/dox-core/version.php',
+ *         __DIR__ . '/dox-core/dox-core.php'
+ *     );
+ *
+ * La versión se lee de version.php y no se escribe a mano en el plugin: así
+ * viaja con la carpeta y no hay forma de copiar código nuevo con número viejo.
+ *
+ * OJO: register( $version, $file ) no puede cambiar de firma nunca. La clase la
+ * define el primer plugin que cargue, que puede llevar una copia antigua, y los
+ * plugins más nuevos la llaman igual.
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;

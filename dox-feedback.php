@@ -36,7 +36,7 @@ define('DXF_BASENAME', plugin_basename(__FILE__));
 // Menú común de los plugins de Dox Studio. Cada plugin Dox lleva su copia y se
 // carga solo la más nueva de las instaladas.
 require_once DXF_DIR . 'dox-core/loader.php';
-Dox_Core_Loader::register( '1.0.0', DXF_DIR . 'dox-core/dox-core.php' );
+Dox_Core_Loader::register( require DXF_DIR . 'dox-core/version.php', DXF_DIR . 'dox-core/dox-core.php' );
 
 require_once DXF_DIR . 'includes/class-autoloader.php';
 require_once DXF_DIR . 'includes/class-plugin.php';
