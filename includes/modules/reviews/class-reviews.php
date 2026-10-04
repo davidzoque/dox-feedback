@@ -156,7 +156,7 @@ final class DXF_Reviews {
     }
 
     private static function viewer_ip_hash(): string {
-        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $ip = DXF_Plugin::client_ip();
         return $ip !== '' ? substr(hash('sha256', $ip . wp_salt('auth')), 0, 16) : 'none';
     }
 
@@ -1076,7 +1076,7 @@ final class DXF_Review_Session_Bridge {
     }
 
     private static function key(): ?string {
-        $ip  = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $ip  = DXF_Plugin::client_ip();
         $ua  = isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '';
         if ( $ip === '' ) return null;
         return substr(hash('sha256', $ip . '|' . $ua . '|' . wp_salt('auth')), 0, 32);

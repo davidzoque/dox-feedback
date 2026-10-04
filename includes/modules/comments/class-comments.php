@@ -746,12 +746,8 @@ class DXF_Comments {
         // inline data URL for any legacy/guest callers that still send base64.
         $shot_url = '';
         $pre_url  = esc_url_raw(wp_unslash($_POST['screenshot_url'] ?? ''));
-        if ( $pre_url ) {
-            $uploads  = wp_upload_dir();
-            $base_url = trailingslashit($uploads['baseurl']) . 'dxf/';
-            if ( strpos($pre_url, $base_url) === 0 ) {
-                $shot_url = $pre_url;
-            }
+        if ( $pre_url && self::is_own_upload_url($pre_url) ) {
+            $shot_url = $pre_url;
         }
         if ( ! $shot_url ) {
             // save_screenshot() decodes a data URL, validates the mime, and
@@ -986,6 +982,24 @@ class DXF_Comments {
             'body'       => $body,
             'updated_at' => $row['updated_at'] ?? '',
         ]);
+    }
+
+    /**
+     * True only for an existing file sitting directly in /uploads/dxf/. A bare
+     * prefix check lets "dxf/../../wp-config.php" through, so anything with a
+     * slash or ".." after the prefix is refused before it gets stored.
+     */
+    private static function is_own_upload_url(string $url): bool {
+        $uploads = wp_upload_dir();
+        $base    = trailingslashit($uploads['baseurl']) . 'dxf/';
+        if ( strpos($url, $base) !== 0 ) {
+            return false;
+        }
+        $name = rawurldecode(substr($url, strlen($base)));
+        if ( $name === '' || strpbrk($name, '/\\?#') !== false || strpos($name, '..') !== false ) {
+            return false;
+        }
+        return is_file(trailingslashit($uploads['basedir']) . 'dxf/' . $name);
     }
 
     /** Unlink a comment's screenshot + attachments, confined to /uploads/dxf/. */
@@ -1361,8 +1375,7 @@ class DXF_Comments {
         $uploads = wp_upload_dir();
 
         // Restrict to our own screenshots directory — never import arbitrary URLs.
-        $base_url = trailingslashit($uploads['baseurl']) . 'dxf/';
-        if ( ! $url || strpos($url, $base_url) !== 0 ) {
+        if ( ! $url || ! self::is_own_upload_url($url) ) {
             wp_send_json_error(['message' => __('Only Dox Feedback attachments can be imported.', 'dox-feedback')], 400);
         }
 
@@ -1498,7 +1511,7 @@ class DXF_Comments {
      * object-cache flushes) but enough to blunt abuse via a shared review link.
      */
     private function guest_rate_limit(string $bucket, int $max, int $window): bool {
-        $ip  = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $ip  = DXF_Plugin::client_ip();
         $key = 'dxf_rl_' . $bucket . '_' . md5($ip);
         $n   = (int) get_transient($key);
         if ( $n >= $max ) {
@@ -1525,7 +1538,7 @@ class DXF_Comments {
         // has produced ~30 bad lookups in a 5-minute window, short-circuit
         // further attempts without hitting the DB. Salted hash so we never
         // store the raw IP in a transient key.
-        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $ip = DXF_Plugin::client_ip();
         $ip_hash  = $ip !== '' ? substr(hash('sha256', $ip . wp_salt()), 0, 16) : 'unknown';
         $fail_key = 'dxf_token_fails_' . $ip_hash;
         $fails    = (int) get_transient($fail_key);
@@ -2105,9 +2118,7 @@ class DXF_Comments {
             wp_send_json_error(['message' => __('Invalid request.', 'dox-feedback')], 400);
         }
 
-        $uploads  = wp_upload_dir();
-        $base_url = trailingslashit($uploads['baseurl']) . 'dxf/';
-        if ( strpos($url, $base_url) !== 0 ) {
+        if ( ! self::is_own_upload_url($url) ) {
             wp_send_json_error(['message' => __('Invalid screenshot.', 'dox-feedback')], 400);
         }
 

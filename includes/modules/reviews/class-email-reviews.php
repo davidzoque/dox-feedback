@@ -441,7 +441,7 @@ final class DXF_Email_Reviews {
     }
 
     private function request_rate_ok(): bool {
-        $ip  = isset($_SERVER['REMOTE_ADDR']) ? (string) wp_unslash($_SERVER['REMOTE_ADDR']) : '';
+        $ip  = DXF_Plugin::client_ip();
         $key = 'dxf_req_' . substr(hash('sha256', $ip), 0, 20);
         $n   = (int) get_transient($key);
         if ( $n >= 10 ) {

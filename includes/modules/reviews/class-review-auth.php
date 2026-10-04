@@ -139,7 +139,7 @@ final class DXF_Review_Auth {
 
     /** Crude per-IP throttle on token activation (30 / hour). */
     private static function rate_ok(): bool {
-        $ip  = isset($_SERVER['REMOTE_ADDR']) ? (string) wp_unslash($_SERVER['REMOTE_ADDR']) : '';
+        $ip  = DXF_Plugin::client_ip();
         $key = 'dxf_act_' . substr(hash('sha256', $ip), 0, 20);
         $n   = (int) get_transient($key);
         if ( $n >= 30 ) {

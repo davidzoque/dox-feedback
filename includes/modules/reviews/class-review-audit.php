@@ -44,7 +44,7 @@ final class DXF_Review_Audit {
         global $wpdb;
         if ( $review_id <= 0 || $event === '' ) return;
 
-        $ip      = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $ip      = DXF_Plugin::client_ip();
         $ua      = isset($_SERVER['HTTP_USER_AGENT']) ? substr(sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])), 0, 300) : '';
         $ip_hash = $ip !== '' ? substr(hash('sha256', $ip . wp_salt('auth')), 0, 16) : '';
 

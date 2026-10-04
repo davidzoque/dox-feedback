@@ -151,7 +151,7 @@ class DXF_Approvals {
     }
 
     private static function client_ip(): string {
-        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $ip = DXF_Plugin::client_ip();
         return mb_substr($ip, 0, 45);
     }
 

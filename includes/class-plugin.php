@@ -81,4 +81,65 @@ final class DXF_Plugin {
             DXF_Cache::flush_all();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Client IP
+    // -------------------------------------------------------------------------
+
+    /** Cloudflare edge ranges (https://www.cloudflare.com/ips/). */
+    private const CLOUDFLARE_RANGES = [
+        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+        '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+        '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+        '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+        '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
+    ];
+
+    /**
+     * Visitor IP for rate limits and audit hashes. REMOTE_ADDR is the only
+     * value nobody can forge, so it wins; CF-Connecting-IP is trusted only
+     * when the request really comes from a Cloudflare edge. Otherwise a site
+     * behind Cloudflare (without real-IP restore) would put every visitor in
+     * the same bucket, and a site not behind it would let anyone dodge the
+     * limit by sending the header.
+     */
+    public static function client_ip(): string {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        if ( isset($_SERVER['HTTP_CF_CONNECTING_IP']) && self::in_ranges($ip, self::CLOUDFLARE_RANGES) ) {
+            $cf = sanitize_text_field(wp_unslash($_SERVER['HTTP_CF_CONNECTING_IP']));
+            if ( filter_var($cf, FILTER_VALIDATE_IP) ) {
+                $ip = $cf;
+            }
+        }
+        return $ip;
+    }
+
+    private static function in_ranges(string $ip, array $ranges): bool {
+        $bin = @inet_pton($ip);
+        if ( $bin === false ) {
+            return false;
+        }
+        foreach ( $ranges as $range ) {
+            [ $net, $bits ] = explode('/', $range);
+            $net_bin = inet_pton($net);
+            if ( strlen($net_bin) !== strlen($bin) ) {
+                continue;
+            }
+            $bits  = (int) $bits;
+            $bytes = intdiv($bits, 8);
+            if ( substr($bin, 0, $bytes) !== substr($net_bin, 0, $bytes) ) {
+                continue;
+            }
+            $rest = $bits % 8;
+            if ( $rest === 0 ) {
+                return true;
+            }
+            $mask = chr((0xFF << (8 - $rest)) & 0xFF);
+            if ( ($bin[$bytes] & $mask) === ($net_bin[$bytes] & $mask) ) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
