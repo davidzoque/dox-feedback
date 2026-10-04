@@ -4,7 +4,7 @@ Tags: client feedback, website feedback, approvals, bricks, elementor
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,10 @@ Yes. A review can cover a single page, a selection of pages, or the entire site 
 In your own WordPress database (`wp_dxf_*` tables). Nothing is transmitted off-site.
 
 == Changelog ==
+
+= 1.2.1 =
+* Security: the per-visitor limits on public links trust the CF-Connecting-IP header only when the request really comes from Cloudflare, so the header can't be faked to dodge them, and visitors don't end up sharing one limit when the server doesn't restore the real IP.
+* Security: a screenshot URL is accepted only if it is a file that exists directly in uploads/dxf.
 
 = 1.2.0 =
 * Changed: Dox Feedback now lives inside the shared **Dox Plugins** menu, as one entry, "Feedback", instead of a menu of its own. It opens the feedback inbox, and a bar at the top of every screen moves between Feedback, Reviews, Approvals, Getting Started and Settings. The addresses of the screens do not change, so bookmarks and the links in the emails keep working. If the shared menu ever failed to load, the plugin goes back to its own menu.
