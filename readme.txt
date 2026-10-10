@@ -4,7 +4,7 @@ Tags: client feedback, website feedback, approvals, bricks, elementor
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,9 @@ Yes. A review can cover a single page, a selection of pages, or the entire site 
 In your own WordPress database (`wp_dxf_*` tables). Nothing is transmitted off-site.
 
 == Changelog ==
+
+= 1.2.2 =
+* Emails now carry a plain-text version next to the HTML one, so Gmail and other providers are less likely to send them to spam.
 
 = 1.2.1 =
 * Security: the per-visitor limits on public links trust the CF-Connecting-IP header only when the request really comes from Cloudflare, so the header can't be faked to dodge them, and visitors don't end up sharing one limit when the server doesn't restore the real IP.

@@ -205,8 +205,18 @@ class DXF_Mailer {
             $caught = $error;
         };
 
+        // wp_mail() only sends the HTML part; Gmail penalises mail without a plain-text
+        // alternative, so hand $plain to PHPMailer for this send only.
+        $alt_body = static function ( $phpmailer ) use ( $plain ): void {
+            $phpmailer->AltBody = $plain;
+        };
+
         add_action( 'wp_mail_failed', $listener );
+        if ( trim( $plain ) !== '' ) {
+            add_action( 'phpmailer_init', $alt_body );
+        }
         $sent = wp_mail( $recipients, $subject, $html, $headers, $attachments );
+        remove_action( 'phpmailer_init', $alt_body );
         remove_action( 'wp_mail_failed', $listener );
 
         if ( ! $sent || $caught instanceof \WP_Error ) {
